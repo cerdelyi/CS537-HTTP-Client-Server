@@ -7,7 +7,7 @@
 //
 
 #include <stdio.h>
-#include <stdio.h>
+#include <stdlib.h>
 #include <errno.h>
 #include <string.h>
 #include <strings.h>
@@ -16,6 +16,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+
+#include <unistd.h>
 
 #define MAXLINE 256
 
@@ -76,5 +78,3 @@ void str_client(FILE *fp, int socket_fd)
     }
     
 }
-
-
