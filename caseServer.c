@@ -37,16 +37,28 @@ void *clientHandler(void *arg)
     strncpy(msg, "HTTP/1.1 200 OK \n Date: Mon, 27 Jul 2009 12:28:53 GMT \n Server: Apache \nLast-Modified: Wed, 22 Jul 2009 19:15:56 GMT \n Accept-Ranges: bytes \nContent-Length: 51 \nVary: Accept-Encoding\nContent-Type: text/plain\n\n Hello World! My payload includes a trailing CRLF.", MAXLINE);
     
     int fd = *(int*)(arg);
+    char* string_tokens;
+  //  char* getCommand = "GET";
     
     while (1) {
         if ((n = read(fd, str, MAXLINE)) == 0) {
+            write(fd, "closing connection", MAXLINE);
             close (fd);
             return 0;
         }
+        string_tokens = strtok(str, " ");
+        if (strncmp(string_tokens, "GET", 3)==0){
+            write(fd, msg, MAXLINE);
+            }
         
-        if (strncmp(str, "GET", 8)){
+        else if (strncmp(string_tokens, "PUT", 3)==0){
+            write(fd, "404 error", MAXLINE);
+        }
         
-            write(fd, msg, MAXLINE);}
+        else{
+            write(fd, "skipped those checks", MAXLINE);
+        }
+        
     }
     
 }
