@@ -6,7 +6,7 @@
 //  Copyright © 2018 Christopher Erdelyi. All rights reserved.
 //
 
-
+#include "caseServer.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -22,7 +22,7 @@
 #include <unistd.h>
 #include <pthread.h>
 
-#define MAXLINE    256
+#define MAXLINE    512
 
 const int backlog = 4;
 
@@ -30,9 +30,13 @@ void *clientHandler(void *arg)
 {
     
     char str[MAXLINE];
-    int  i, n;
+    char msg[MAXLINE];
     
-    int  fd = *(int*)(arg);
+    int i, n;
+    
+    strncpy(msg, "HTTP/1.1 200 OK \n Date: Mon, 27 Jul 2009 12:28:53 GMT \n Server: Apache \nLast-Modified: Wed, 22 Jul 2009 19:15:56 GMT \n Accept-Ranges: bytes \nContent-Length: 51 \nVary: Accept-Encoding\nContent-Type: text/plain\n\n Hello World! My payload includes a trailing CRLF.", MAXLINE);
+    
+    int fd = *(int*)(arg);
     
     while (1) {
         if ((n = read(fd, str, MAXLINE)) == 0) {
@@ -40,13 +44,9 @@ void *clientHandler(void *arg)
             return 0;
         }
         
-        for (i = 0; i < strlen(str); i++) {
-            if (str[i] >= 97 && str[i] <= 122) {
-                str[i] = str[i] - 32;
-            }
-        }
+        if (strncmp(str, "GET", 8)){
         
-        write(fd, str, strlen(str));
+            write(fd, msg, MAXLINE);}
     }
     
 }
