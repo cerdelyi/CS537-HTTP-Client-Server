@@ -26,6 +26,18 @@
 
 const int backlog = 4;
 
+/**
+ WHAT IS NEEDED AND NECESSARY:
+ be able to parse out to http 1.0 or 1.1
+ 
+ function to return status codes
+ function to read size of file to place in "Content-Length" header  <-- important. Will not work without this.
+ function which sets line for "Content-Type" <--- need for images
+ *learn how to read in files in C and determine their file size*
+ 
+ 
+ */
+
 void *clientHandler(void *arg)
 {
     
