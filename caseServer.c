@@ -22,7 +22,7 @@
 #include <unistd.h>
 #include <pthread.h>
 
-#define MAXLINE    512
+#define MAXLINE    1024
 
 const int backlog = 4;
 
@@ -34,7 +34,18 @@ void *clientHandler(void *arg)
     
     int i, n;
     
-    strncpy(msg, "HTTP/1.1 200 OK \n Date: Mon, 27 Jul 2009 12:28:53 GMT \n Server: Apache \nLast-Modified: Wed, 22 Jul 2009 19:15:56 GMT \n Accept-Ranges: bytes \nContent-Length: 51 \nVary: Accept-Encoding\nContent-Type: text/plain\n\n Hello World! My payload includes a trailing CRLF.", MAXLINE);
+    strncpy(msg, "HTTP/1.1 200 OK \n Date: Mon, 27 Jul 2009 12:28:53 GMT \n Server: Apache \nLast-Modified: Wed, 22 Jul 2009 19:15:56 GMT \n Accept-Ranges: bytes \nContent-Length: 88 \nVary: Accept-Encoding\nContent-Type: text/html\r\n\r\n <html>\n <body>\n Hello World! My payload includes a trailing CRLF.\n </body>\n </html>", MAXLINE);
+    
+    char* data =
+    "HTTP/1.1 200 OK\n"
+    "Date: Thu, 19 Feb 2009 12:27:04 GMT\n"
+    "Server: Apache/2.2.3\n"
+    "Last-Modified: Wed, 18 Jun 2003 16:05:58 GMT\n"
+    "Content-Type: text/html\n"
+    "Content-Length: 44\n"
+    "Accept-Ranges: bytes\n"
+    "\n"
+    "<html> <body> Hello World! </body> </html>";
     
     int fd = *(int*)(arg);
     char* string_tokens;
@@ -48,7 +59,7 @@ void *clientHandler(void *arg)
         }
         string_tokens = strtok(str, " ");
         if (strncmp(string_tokens, "GET", 3)==0){
-            write(fd, msg, MAXLINE);
+            write(fd, data, MAXLINE);
             }
         
         else if (strncmp(string_tokens, "PUT", 3)==0){
@@ -56,7 +67,7 @@ void *clientHandler(void *arg)
         }
         
         else{
-            write(fd, "skipped those checks", MAXLINE);
+            write(fd, "skipped those checks", 256);
         }
         
     }
