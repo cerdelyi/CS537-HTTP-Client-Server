@@ -120,12 +120,12 @@ void *clientHandler(void *arg)
 //    snprintf(Content_Header_Length, ContentHeaderSize, "%d", ContentHeaderSize);
     
     
-    char* fullHeader = (char*) malloc(1+ strlen(data)+strlen(Content_Header_Length));
-    strcat(fullHeader, data);
+    char* fullHeader = (char*) malloc(10+ strlen(data)+strlen(Content_Header_Length));
+    strcpy(fullHeader, data);
     strcat(fullHeader, Content_Header_Length);
+    strcat(fullHeader, trailingNewline);
     
-    char* fullData = (char*) malloc(1+ strlen(fullHeader)+ strlen(buffer));
-    
+    char* fullData = (char*) malloc(10+ strlen(fullHeader)+ strlen(buffer));
     strcpy(fullData, fullHeader);
     strcat(fullData, buffer);
     
