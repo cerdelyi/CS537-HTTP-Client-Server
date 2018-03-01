@@ -70,15 +70,16 @@ void *clientHandler(void *arg)
     
     strncpy(msg, "HTTP/1.1 200 OK \n Date: Mon, 27 Jul 2009 12:28:53 GMT \n Server: Apache \nLast-Modified: Wed, 22 Jul 2009 19:15:56 GMT \n Accept-Ranges: bytes \nContent-Length: 88 \nVary: Accept-Encoding\nContent-Type: text/html\r\n\r\n <html>\n <body>\n Hello World! My payload includes a trailing CRLF.\n </body>\n </html>", MAXLINE);
     
-    char data[999] =
+    const char* data =
     "HTTP/1.1 200 OK\n"
     "Content-Type: text/html\n"
-    "Content-Length: 400\n"
     "Accept-Ranges: bytes\n"
-    "\n";
+    "Content-Length: ";
+    
+    const char *trailingNewline = "\n\n";
 
     char* buffer;
-      size_t size = 1;
+    size_t size = 1;
     
 //    int testLength = msgLength(data1);
     
@@ -96,8 +97,6 @@ void *clientHandler(void *arg)
     buffer = realloc(NULL, sizeof(char)*size);//size is start size
     
     
-    // strcat(data, );
-    
     
     while(EOF!=(ch=fgetc(testHTML))){
         buffer[len++]=ch;
@@ -111,14 +110,30 @@ void *clientHandler(void *arg)
     buffer = realloc(buffer, sizeof(char)*len);
     
     
-    char* fullData = (char*) malloc(1+ strlen(data)+ strlen(buffer));
-    ;
-    strcpy(fullData, data);
+// There are segfault and abort errors when connecting to the server. It probably results from
+// trying to convert the ContentHeaderSize int to a string, or one of the strcat() calls.
+    
+    
+    int ContentHeaderSize = strlen(buffer);
+    char* Content_Header_Length = (char*) &ContentHeaderSize;
+    
+//    snprintf(Content_Header_Length, ContentHeaderSize, "%d", ContentHeaderSize);
+    
+    
+    char* fullHeader = (char*) malloc(1+ strlen(data)+strlen(Content_Header_Length));
+    strcat(fullHeader, data);
+    strcat(fullHeader, Content_Header_Length);
+    
+    char* fullData = (char*) malloc(1+ strlen(fullHeader)+ strlen(buffer));
+    
+    strcpy(fullData, fullHeader);
     strcat(fullData, buffer);
     
     
     fclose(testHTML);
     free(buffer);
+    free(fullHeader);
+    free(fullData);
     
     fclose(testHTML);
 
