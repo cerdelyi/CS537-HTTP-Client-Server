@@ -115,9 +115,9 @@ void *clientHandler(void *arg)
     
     
     int ContentHeaderSize = strlen(buffer);
-    char* Content_Header_Length = (char*) &ContentHeaderSize;
+    char Content_Header_Length[ContentHeaderSize];
     
-//    snprintf(Content_Header_Length, ContentHeaderSize, "%d", ContentHeaderSize);
+    snprintf(Content_Header_Length, ContentHeaderSize, "%d", ContentHeaderSize);
     
     
     char* fullHeader = (char*) malloc(10+ strlen(data)+strlen(Content_Header_Length));
@@ -131,13 +131,16 @@ void *clientHandler(void *arg)
     
     
     fclose(testHTML);
-    free(buffer);
-    free(fullHeader);
-    free(fullData);
     
-    fclose(testHTML);
+    // write(fd, fullData, MAXLINE);
 
     while (1) {
+        
+        char* fullData = (char*) malloc(10+ strlen(fullHeader)+ strlen(buffer));
+        strcpy(fullData, fullHeader);
+        strcat(fullData, buffer);
+        
+        
         if ((n = read(fd, str, MAXLINE)) == 0) {
             write(fd, "closing connection", MAXLINE);
             close (fd);
@@ -159,6 +162,9 @@ void *clientHandler(void *arg)
     
     }
     
+    free(buffer);
+    free(fullHeader);
+    free(fullData);
 }
 
 int main(int argc, char *argv[])
