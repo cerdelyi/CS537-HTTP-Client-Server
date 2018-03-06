@@ -61,12 +61,7 @@ void *headerReturn(char input[200])
 }
 
 
-int msgLength(char* msg)
-{
-    
-    int strLength=strlen(msg);
-    return strLength;
-}
+
 
 void *clientHandler(void *arg)
 {
@@ -90,7 +85,7 @@ void *clientHandler(void *arg)
     "Accept-Ranges: bytes\n"
     "Content-Length: ";
     
-    const char *trailingNewline = "\n\n";
+    const char *trailingNewline = "\r\n\r\n";
     
     char* buffer;
     size_t size = 10;
@@ -123,31 +118,13 @@ void *clientHandler(void *arg)
     
     buffer = realloc(buffer, sizeof(char)*len);
     
-    
-    // There are segfault and abort errors when connecting to the server. It probably results from
-    // trying to convert the ContentHeaderSize int to a string, or one of the strcat() calls.
-    
-    
-   
-  /*
-    
-     char* fullHeader = (char*) malloc(10+ strlen(data)+strlen(Content_Header_Length));
-     strcpy(fullHeader, data);
-     strcat(fullHeader, Content_Header_Length);
-     strcat(fullHeader, trailingNewline);
-     
-     char* fullData = (char*) malloc(10+ strlen(fullHeader)+ strlen(buffer));
-     strcpy(fullData, fullHeader);
-     strcat(fullData, buffer);
-    */
-    
     fclose(testHTML);
   
     
     ////////////////////////////////////////////////
     // IMAGE HANDLING SECTION
+   
     /*
-    
     FILE* testGif = fopen("indyicon.jpg", "r");
     int gifsize;
     fseek(testGif, 0, SEEK_END);
@@ -170,8 +147,8 @@ void *clientHandler(void *arg)
         strcat(fullGifHeader, send_buffer);
         //write(fd, send_buffer, sizeof(send_buffer));
         bzero(send_buffer, sizeof(send_buffer));
-    }
-  */
+    } */
+  
 
     
     
@@ -185,6 +162,11 @@ void *clientHandler(void *arg)
         printf("Memory error"); exit (2);
     }
     
+    
+    // TRY DIFFERENT METHOD OF READING FILE. NO CHAR STRINGS
+  //   char imageBinFile[fileLen];
+  //  fread(imageBinFile, 1, fileLen, file);
+    
     //ADD HEADER INFO: 200 OK, CONTENT-LENGTH, TRAILING NEW LINE, IMAGE BYTES
     
     
@@ -192,21 +174,22 @@ void *clientHandler(void *arg)
     char s;
     while ((num_read = fread(&s, 1, 1, file))) {
         printf("byte: %02x \n", s);
-        printf("fileLen contains: %d \n", fileLen);
+       // printf("fileLen contains: %d \n", fileLen);
         strncat(file_data,&s,1);
     }
-    
+    printf("fileLen: %d \n", fileLen);
+    printf("file_data: %s \n", file_data);
     
     //CONVERT LENGTH OF IMAGE FILE TO TEXT FORMAT FOR HEADER
     char Img_Content_Header_Length[fileLen];
-  //  sprintf(Img_Content_Header_Length, fileLen, "%d", fileLen);
+    sprintf(Img_Content_Header_Length, "%d", fileLen);
     
     //PUT IT ALL TOGETHER
-    char* fullImgHeader = malloc(sizeof(file_data)+ strlen(trailingNewline) + strlen(Img_Content_Header_Length) + strlen(jpgHeader));
+    char* fullImgHeader = malloc(strlen(trailingNewline) + strlen(Img_Content_Header_Length) + strlen(jpgHeader));
     strcpy(fullImgHeader, jpgHeader);
     strcat(fullImgHeader, Img_Content_Header_Length);
     strcat(fullImgHeader, trailingNewline);
-    strcat(fullImgHeader, file_data);
+   // strcat(fullImgHeader, file_data);
     
     //printf("file contents: %s", file_data);
     fclose(file);
@@ -246,11 +229,19 @@ void *clientHandler(void *arg)
         string_tokens = strtok(tempStr, " ");
         if (strncmp(string_tokens, "GET", 3)==0){
             
-        //    write(fd, fullData, MAXLINE);
+            string_tokens = strtok(tempStr, " ");
+            if(strncmp(string_tokens, "/", 1))
+                {write(fd, fullData, sizeof(fullData));}
+        
             
-          
-            write(fd,fullImgHeader, MAXLINE);
+            //TEST SECTION FOR IMAGE
+            else if (strncmp(string_tokens, "indyicon.jpg", 12)){
+                write(fd, fullImgHeader, sizeof(fullImgHeader));
+                write(fd, file_data, sizeof(file_data));}
+       
+        
         }
+        
         
         else if (strncmp(string_tokens, "PUT", 3)==0){
             write(fd, "404 error", MAXLINE);
