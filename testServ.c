@@ -93,7 +93,7 @@ void *clientHandler(void *arg)
     const char *trailingNewline = "\n\n";
     
     char* buffer;
-    size_t size = 1;
+    size_t size = 10;
     
     //    int testLength = msgLength(data1);
     
@@ -129,19 +129,24 @@ void *clientHandler(void *arg)
     
     
    
+  /*
     
-    
-    /*    char* fullHeader = (char*) malloc(10+ strlen(data)+strlen(Content_Header_Length));
+     char* fullHeader = (char*) malloc(10+ strlen(data)+strlen(Content_Header_Length));
      strcpy(fullHeader, data);
      strcat(fullHeader, Content_Header_Length);
      strcat(fullHeader, trailingNewline);
      
      char* fullData = (char*) malloc(10+ strlen(fullHeader)+ strlen(buffer));
      strcpy(fullData, fullHeader);
-     strcat(fullData, buffer); */
-    
+     strcat(fullData, buffer);
+    */
     
     fclose(testHTML);
+  
+    
+    ////////////////////////////////////////////////
+    // IMAGE HANDLING SECTION
+    /*
     
     FILE* testGif = fopen("indyicon.jpg", "r");
     int gifsize;
@@ -152,12 +157,12 @@ void *clientHandler(void *arg)
     char* fullGifHeader = (char*) malloc(10+strlen(gifHeader)+gifsize);
     char* gifContentSize= (char*) malloc(gifsize);
     
-  /*  snprintf(gifContentSize, gifsize, "%d", gifsize);
+   snprintf(gifContentSize, gifsize, "%d", gifsize);
     strcpy(fullGifHeader, gifHeader);
     strcat(fullGifHeader, gifContentSize);
     strcat(fullGifHeader, trailingNewline);
     
-*/    //Send Picture as Byte Array
+    //Send Picture as Byte Array
  
     char send_buffer[1];
     while(!feof(testGif)) {
@@ -166,7 +171,7 @@ void *clientHandler(void *arg)
         //write(fd, send_buffer, sizeof(send_buffer));
         bzero(send_buffer, sizeof(send_buffer));
     }
-  
+  */
     
     while (1) {
         
@@ -185,14 +190,14 @@ void *clientHandler(void *arg)
         snprintf(Content_Header_Length, ContentHeaderSize, "%d", ContentHeaderSize);
         
         
-        char* fullHeader = (char*) malloc(10+ strlen(data)+strlen(Content_Header_Length));
+        char* fullHeader = (char*) malloc(strlen(trailingNewline)+ strlen(data)+strlen(Content_Header_Length));
         strcpy(fullHeader, data);
         strcat(fullHeader, Content_Header_Length);
         strcat(fullHeader, trailingNewline);
         
         
         
-        char* fullData = (char*) malloc(10+ strlen(fullHeader)+ strlen(buffer));
+        char* fullData = (char*) malloc(strlen(fullHeader)+ strlen(buffer));
         strcpy(fullData, fullHeader);
         strcat(fullData, buffer);
         
@@ -204,9 +209,9 @@ void *clientHandler(void *arg)
         if (strncmp(string_tokens, "GET", 3)==0){
             
             write(fd, fullData, MAXLINE);
-            sleep(1);
+      //      sleep(1);
           
-            write(fd,fullGifHeader, MAXLINE);
+         //   write(fd,fullGifHeader, MAXLINE);
         }
         
         else if (strncmp(string_tokens, "PUT", 3)==0){
