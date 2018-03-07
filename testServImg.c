@@ -232,11 +232,11 @@ void *clientHandler(void *arg)
             printf("Next token is: %s \n", string_tokens);
             
             
-            if(strncmp(string_tokens, "/", 1)==0)
+            if(strncmp(string_tokens, "/", 3)==0)
             {
                 printf("in the loop, saw a slash\n");
                // printf("Full data: %s\n",fullData);
-                write(fd, fullData, MAXLINE);
+                write(fd, fullData, strlen(fullData)+1);
                 
             }
         
@@ -245,8 +245,11 @@ void *clientHandler(void *arg)
             if (strncmp(string_tokens, "/indyicon.jpg", 12)==0)
             {
                 printf("its indy time\n");
-                write(fd, fullImgHeader, MAXLINE);
-                write(fd, file_data, MAXLINE);
+                write(fd, fullImgHeader, strlen(fullImgHeader)+1);
+              //  printf("sending fullImgHeader: %s \n", fullImgHeader);
+                write(fd, file_data, strlen(file_data)+1);
+              //  printf("sending file_data: %s \n", file_data);
+                printf("Competed image writes \n");
                 
             }
        
@@ -258,9 +261,9 @@ void *clientHandler(void *arg)
             write(fd, "404 error", MAXLINE);
         }
         
-        else{
+       /* else{
             write(fd, "skipped those checks", 256);
-        }
+        } */
         
     //    free(buffer);
     //    free(fullHeader);
