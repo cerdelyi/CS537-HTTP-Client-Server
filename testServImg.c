@@ -222,22 +222,33 @@ void *clientHandler(void *arg)
         strcpy(fullData, fullHeader);
         strcat(fullData, buffer);
         
-        int temp = strlen(str);
-        char tempStr[temp];
-        strcpy(tempStr, str);
+     
         
-        string_tokens = strtok(tempStr, " ");
+        string_tokens= strtok(str, " ");
         if (strncmp(string_tokens, "GET", 3)==0){
             
-            string_tokens = strtok(tempStr, " ");
-            if(strncmp(string_tokens, "/", 1))
-                {write(fd, fullData, sizeof(fullData));}
+            printf("in the loop, saw a GET\n");
+            string_tokens= strtok(NULL, " ");
+            printf("Next token is: %s \n", string_tokens);
+            
+            
+            if(strncmp(string_tokens, "/", 1)==0)
+            {
+                printf("in the loop, saw a slash\n");
+               // printf("Full data: %s\n",fullData);
+                write(fd, fullData, MAXLINE);
+                
+            }
         
             
             //TEST SECTION FOR IMAGE
-            else if (strncmp(string_tokens, "indyicon.jpg", 12)){
-                write(fd, fullImgHeader, sizeof(fullImgHeader));
-                write(fd, file_data, sizeof(file_data));}
+            if (strncmp(string_tokens, "/indyicon.jpg", 12)==0)
+            {
+                printf("its indy time\n");
+                write(fd, fullImgHeader, MAXLINE);
+                write(fd, file_data, MAXLINE);
+                
+            }
        
         
         }
