@@ -155,12 +155,14 @@ void *clientHandler(void *arg)
     FILE* file = fopen("indyicon.jpg", "rb");
     fseek(file, 0, SEEK_END);
     int fileLen=ftell(file);
-    char* file_data;
+    //char* file_data;
+    // Try array for file_data
+    char file_data[fileLen];
     rewind(file);
-    file_data=malloc((fileLen)*sizeof(char));
+   /* file_data=malloc((fileLen)*sizeof(char));
     if (file_data == NULL){
         printf("Memory error"); exit (2);
-    }
+    } */
     
     
     // TRY DIFFERENT METHOD OF READING FILE. NO CHAR STRINGS
@@ -170,13 +172,8 @@ void *clientHandler(void *arg)
     //ADD HEADER INFO: 200 OK, CONTENT-LENGTH, TRAILING NEW LINE, IMAGE BYTES
     
     
-    int num_read=0;
-    char s;
-    while ((num_read = fread(&s, 1, 1, file))) {
-        printf("byte: %02x \n", s);
-       // printf("fileLen contains: %d \n", fileLen);
-        strncat(file_data,&s,1);
-    }
+   
+    fread(file_data, sizeof(char), fileLen+1, file);
     printf("fileLen: %d \n", fileLen);
     printf("file_data: %s \n", file_data);
     
@@ -245,12 +242,12 @@ void *clientHandler(void *arg)
             if (strncmp(string_tokens, "/indyicon.jpg", 12)==0)
             {
                 printf("its indy time\n");
-                write(fd, fullImgHeader, strlen(fullImgHeader)+1);
+                write(fd, fullImgHeader, strlen(fullImgHeader));
               //  printf("sending fullImgHeader: %s \n", fullImgHeader);
-                write(fd, file_data, strlen(file_data)+1);
+                write(fd, file_data, fileLen);
               //  printf("sending file_data: %s \n", file_data);
                 printf("Competed image writes \n");
-                
+               
             }
        
         
