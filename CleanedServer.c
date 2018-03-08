@@ -48,12 +48,7 @@ void *clientHandler(void *arg)
     "Content-Length: ";
     
     const char *trailingNewline = "\r\n\r\n";
-    
 
-    size_t size = 10;
-    
-
-    
     int fd = *(int*)(arg);
     char* string_tokens;
     char fileExtension[6];
@@ -200,16 +195,25 @@ void *clientHandler(void *arg)
 int main(int argc, char *argv[])
 {
     
-    int    listenfd, connfd;
+    int    listenfd, htmlVersion, connfd;
     pthread_t tid;
     int     clilen;
     struct     sockaddr_in cliaddr, servaddr;
     
-    if (argc != 3) {
-        printf("Usage: caseServer <address> <port> \n");
+    
+    if (argc != 4 && argc != 3) {
+        printf("Usage: caseServer <address> <HTML version number> <port> \n");
         return -1;
     }
     
+    if(argc ==3)
+    {
+        htmlVersion = 1; //Default to HTML 1.0
+    }
+    else
+    {
+        htmlVersion = atoi(argv[2]);
+    }
     
     listenfd = socket(AF_INET, SOCK_STREAM, 0);
     if (listenfd == -1)
@@ -223,7 +227,7 @@ int main(int argc, char *argv[])
     
     servaddr.sin_family        = AF_INET;
     servaddr.sin_addr.s_addr   = inet_addr(argv[1]);
-    servaddr.sin_port          = htons(atoi(argv[2]));
+    servaddr.sin_port          = htons(atoi(argv[3]));
     
     if (bind(listenfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) == -1) {
         fprintf(stderr, "Error binding to socket, errno = %d (%s) \n",
