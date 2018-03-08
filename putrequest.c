@@ -1,0 +1,106 @@
+#include <stdio.h>
+#include <errno.h>
+#include <string.h>
+#include <strings.h>
+
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+#define MAXLINE 256
+
+void str_client(FILE *fp, int socket_fd);
+
+int main(int argc, char *argv[])
+{
+
+	int	socket_fd;
+	struct  sockaddr_in servaddr;
+
+	if (argc != 3) {
+		printf("Usage: caseClient <address> <port> \n");
+        return -1;
+	}
+
+	socket_fd = socket(AF_INET, SOCK_STREAM, 0);
+	if (socket_fd < 0) {
+        fprintf(stderr, "Error creating socket, errno = %d (%s) \n", 
+                errno, strerror(errno));
+        return -1;
+	}
+
+	bzero(&servaddr, sizeof(servaddr));
+	servaddr.sin_family = AF_INET;
+	servaddr.sin_addr.s_addr = inet_addr(argv[1]);
+	servaddr.sin_port = htons(atoi(argv[2]));
+
+	if (connect(socket_fd, (struct sockaddr *)&servaddr, sizeof(servaddr)) == -1) {
+        fprintf(stderr, "Error unable to connect to socket, errno = %d (%s) \n", errno,
+                strerror(errno));
+        return -1;
+	}
+
+	str_client(stdin, socket_fd);
+
+	return 0;
+
+}
+
+void str_client(FILE *fp, int socket_fd)
+{
+	char	sndLine[MAXLINE];
+	char	rcvLine[MAXLINE];
+
+    memset((void *)sndLine, 0, MAXLINE);
+    memset((void *)rcvLine, 0, MAXLINE);
+
+    const char* putheader =
+    "PUT new.html HTTP/1.1\n"
+    "Content-Type: text/html\n"
+    "Accept-Ranges: bytes\n"
+    "Content-Length: ";
+	
+	FILE* file = fopen("old.html", "r");
+    fseek(file, 0, SEEK_END);
+    int fileLen=ftell(file);
+    char* file_data;
+    rewind(file);
+
+	char clen[10];
+	sprintf(clen, "%d", fileLen);
+	
+    file_data=malloc((strlen(putheader)+strlen(clen)+fileLen+3)*sizeof(char));
+	
+	strcpy(file_data, putheader);
+	strcat(file_data, clen);
+	
+	//strcat(putheader, clen);
+	
+    if (file_data == NULL){
+        printf("Memory error"); exit (2);
+    }
+	char s = 10;
+	strncat(file_data,&s,1);
+	strncat(file_data,&s,1);
+	while(EOF!=(s=fgetc(file))){
+        strncat(file_data,&s,1);
+//		printf("byte: %02x \n", s);
+//		printf("char: %c \n", s);
+    }
+	s = 10;
+	strncat(file_data,&s,1);
+
+	
+	write(socket_fd, (void *)file_data, strlen(file_data));
+
+    if (read(socket_fd, rcvLine, MAXLINE) == 0) {
+		   printf("ERROR: server terminated \n");
+		   return;
+    }
+
+    fputs(rcvLine, stdout);
+
+}
+
+	
