@@ -49,68 +49,15 @@ void *clientHandler(void *arg)
     
     const char *trailingNewline = "\r\n\r\n";
     
- //   char* buffer;
+
     size_t size = 10;
     
-    //    int testLength = msgLength(data1);
+
     
     int fd = *(int*)(arg);
     char* string_tokens;
-    //  char* getCommand = "GET";
+    char fileExtension[6];
     
-  //  FILE* testHTML = fopen("test.html", "r");
-    
-    // char inputString[999];
-    
-    
-   /* int ch;
-    size_t len = 0;
-    buffer = realloc(NULL, sizeof(char)*size);//size is start size
-    
-    
-    
-    while(EOF!=(ch=fgetc(testHTML))){
-        buffer[len++]=ch;
-        if(len==size){
-            buffer = realloc(buffer, sizeof(char)*(size+=16));
-        }
-    }
-    buffer[len++]='\0';
-    
-    
-    buffer = realloc(buffer, sizeof(char)*len);
-    
-    fclose(testHTML);
-    */
-    
-    ////////////////////////////////////////////////
-    // IMAGE HANDLING SECTION
-    
-    /*
-     FILE* testGif = fopen("indyicon.jpg", "r");
-     int gifsize;
-     fseek(testGif, 0, SEEK_END);
-     gifsize = ftell(testGif);
-     fseek(testGif, 0, SEEK_SET);
-     
-     char* fullGifHeader = (char*) malloc(10+strlen(gifHeader)+gifsize);
-     char* gifContentSize= (char*) malloc(gifsize);
-     
-     snprintf(gifContentSize, gifsize, "%d", gifsize);
-     strcpy(fullGifHeader, gifHeader);
-     strcat(fullGifHeader, gifContentSize);
-     strcat(fullGifHeader, trailingNewline);
-     
-     //Send Picture as Byte Array
-     
-     char send_buffer[1];
-     while(!feof(testGif)) {
-     fread(send_buffer, 1, sizeof(send_buffer), testGif);
-     strcat(fullGifHeader, send_buffer);
-     //write(fd, send_buffer, sizeof(send_buffer));
-     bzero(send_buffer, sizeof(send_buffer));
-     } */
-
     
     while (1) {
         
@@ -122,22 +69,48 @@ void *clientHandler(void *arg)
         
         
         string_tokens= strtok(str, " ");
-        if (strncmp(string_tokens, "GET", 3)==0){
+        if (strncmp(string_tokens, "GET", 3)==0)
+        {
+            char* fileExtensionSearch = string_tokens;
             
           
-            string_tokens= strtok(NULL, " ");
+                string_tokens= strtok(NULL, " ");
+                if((fileExtensionSearch = strrchr(string_tokens, '.')) != NULL)
+                   {
+                       if(strcmp(fileExtensionSearch, ".jpg")==0)
+                       {
+                           strcpy(fileExtension, "jpg");
+                       }
+                       
+                       if(strcmp(fileExtensionSearch, ".html")==0)
+                       {
+                           strcpy(fileExtension, "html");
+                       }
+                   }
             
+                 if((fileExtensionSearch = strrchr(string_tokens, '.')) == NULL) // Default case for browser sending GET / HTTP/1.X
+                 {
+                     strcpy(fileExtension, "html");
+                 }
+            
+            if(strcmp(fileExtension, "html")==0)
+            {
                 //Check for HTML file request
-                if(strncmp(string_tokens, "/", 3)==0)    //Default case. Browser is asking for index.html
-                {
-                    
-                    char* fileToOpen = (char*) malloc(strlen(string_tokens));
-                    
-                    strcpy(fileToOpen, string_tokens);
-                   
-                    if(strncmp(fileToOpen, "/",1)==0)
+                //if(strncmp(string_tokens, "/", 3)==0)    //Default case. Browser is asking for index.html
+               // {
+                    char* string_copy = string_tokens + 1;
+                
+                    char* fileToOpen;
+                
+                    if(strncmp(string_tokens, "/",3)==0)     //Default case. Browser is asking for index.html
                     {
+                        fileToOpen = (char*) malloc(11);
                         strcpy(fileToOpen, "index.html");
+                    }
+                    else
+                    {
+                        fileToOpen = (char*) malloc(strlen(string_tokens));
+                        strcpy(fileToOpen, string_copy);
                     }
                   
                     FILE* file = fopen(fileToOpen, "r");
@@ -162,14 +135,16 @@ void *clientHandler(void *arg)
                     strcat(fullData, file_data);
                     
                     write(fd, fullData, strlen(fullData)+1);
-                }
+               // }
+            }
             
-            
+            if(strcmp(fileExtension, "jpg")==0)
+            {
+                char* string_copy = string_tokens + 1;
                 //Check for image file request
-                if (strncmp(string_tokens, "/indyicon.jpg", 12)==0)
-                {
-                    char* fileToOpen = (char*) malloc(strlen(string_tokens));
-                    strcpy(fileToOpen, "indyicon.jpg");
+                
+                    char* fileToOpen = (char*) malloc(strlen(string_copy));
+                    strcpy(fileToOpen, string_copy);
                     
                     FILE* file = fopen(fileToOpen, "rb");
                     fseek(file, 0, SEEK_END);
@@ -196,21 +171,21 @@ void *clientHandler(void *arg)
                     write(fd, fullImgHeader, strlen(fullImgHeader));
                     write(fd, file_data, fileLen);
                 }
-            
+            }
         }
         
-        if(strncmp(string_tokens, "PUT", 3))
+        if(strncmp(string_tokens, "PUT", 3)==0)
         {
             
         }
         
-        if(strncmp(string_tokens, "HEAD", 4))
+        if(strncmp(string_tokens, "HEAD", 4)==0)
         {
             
             
         }
         
-        if(strncmp(string_tokens, "DELETE", 6))
+        if(strncmp(string_tokens, "DELETE", 6)==0)
         {
             
             
@@ -219,17 +194,8 @@ void *clientHandler(void *arg)
         else {      // SEND 404 ERROR
             write(fd, "404 error", MAXLINE);
         }
-        
-        
-        //    free(buffer);
-        //    free(fullHeader);
-        //    free(fullData);
-        
-        
     }
-    
-    
-}
+
 
 int main(int argc, char *argv[])
 {
