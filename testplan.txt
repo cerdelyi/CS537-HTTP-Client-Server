@@ -1,0 +1,19 @@
+
+Test cases:
+
+GET existing file
+GET index.html (without specifying, ie. default path)
+GET non-existant file
+
+GET existing jpeg
+GET non-existant jpeg
+
+HEAD existing file
+HEAD non-existant file
+
+PUT new file (ie. nothing at that path yet)
+PUT at existing file
+GET file that was put
+
+DELETE existing file
+DELETE non-existant file
