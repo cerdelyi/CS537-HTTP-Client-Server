@@ -36,15 +36,15 @@ void *clientHandler(void *arg)
     
     
     const char* data =
-    "HTTP/1.1 200 OK\n"
-    "Content-Type: text/html\n"
-    "Accept-Ranges: bytes\n"
+    "HTTP/1.1 200 OK\r\n"
+    "Content-Type: text/html\r\n"
+    "Accept-Ranges: bytes\r\n"
     "Content-Length: ";
     
     const char* jpgHeader =
-    "HTTP/1.1 200 OK\n"
-    "Content-Type: image/jpeg\n"
-    "Accept-Ranges: bytes\n"
+    "HTTP/1.1 200 OK\r\n"
+    "Content-Type: image/jpeg\r\n"
+    "Accept-Ranges: bytes\r\n"
     "Content-Length: ";
     
     const char *trailingNewline = "\r\n\r\n";
@@ -72,7 +72,7 @@ void *clientHandler(void *arg)
 		if(strcmp(slashpath, "/") == 0)
 		{
 			path = (char*) malloc(sizeof(char)*11);
-			strcpy(path, "/index.html");
+			strcpy(path, "index.html");
 		}
 		else
 			path = slashpath+1;
@@ -85,7 +85,7 @@ void *clientHandler(void *arg)
 			//check if file exists
 			if(access(path, F_OK) < 0)	//doesn't exist
 			{
-				write(fd, "HTTP/1.1 404 Not Found", 22);
+				write(fd, "HTTP/1.1 404 Not Found\r\n", 24);
 			}
 			else	//does exist
 			{
@@ -158,7 +158,7 @@ void *clientHandler(void *arg)
 				//file is not html or jpg
 				else
 				{
-					write(fd, "HTTP/1.1 415 Unsupported Media Type", 35);
+					write(fd, "HTTP/1.1 415 Unsupported Media Type\r\n", 37);
 				}
 			}
         }
@@ -172,13 +172,15 @@ void *clientHandler(void *arg)
 				//check if file exists
 				if(access(path, F_OK ) < 0)	//doesn't exist
 				{
-					strcpy(puthead, "HTTP/1.1 201 Created\nContent-Location: ");
+					strcpy(puthead, "HTTP/1.1 201 Created\r\nContent-Location: ");
 					strcat(puthead, path);
+					strcat(puthead, "\r\n");
 				}
 				else	//does exist
 				{
-					strcpy(puthead, "HTTP/1.1 204 No Content\nContent-Location: ");
+					strcpy(puthead, "HTTP/1.1 204 No Content\r\nContent-Location: ");
 					strcat(puthead, path);		
+					strcat(puthead, "\r\n");
 				}				
 				//get length
 				char* lenloc = strstr(strcopy, "Content-Length: ");
@@ -198,7 +200,7 @@ void *clientHandler(void *arg)
 			//file is not html
 			else
 			{
-				write(fd, "HTTP/1.1 415 Unsupported Media Type", 35);
+				write(fd, "HTTP/1.1 415 Unsupported Media Type\r\n", 37);
 			}
         }
         //respond to DELETE request    
@@ -207,82 +209,114 @@ void *clientHandler(void *arg)
 			//check if file exists
 			if(access(path, F_OK ) < 0)	//doesn't exist
 			{
-				write(fd, "HTTP/1.1 404 Not Found", 22);
+				write(fd, "HTTP/1.1 404 Not Found\r\n", 24);
 			}
 			else	//does exist
 			{
 				if (remove(path) == 0)
-					write(fd, "HTTP/1.1 204 No Content", 23);
+					write(fd, "HTTP/1.1 204 No Content\r\n", 25);
 				else
 				{
-					write(fd, "HTTP/1.1 403 Forbidden\r\n\r\n<p>DELETE error: remove() failed.</p>", 67);
+					write(fd, "HTTP/1.1 403 Forbidden\r\n\r\n<p>DELETE error: remove() failed.</p>", 63);
 				}
 			}
         }
         //not a GET, HEAD, PUT, DELETE request
         else
 		{
-            write(fd, "HTTP/1.1 405 Method Not Allowed", 31);
+            write(fd, "HTTP/1.1 405 Method Not Allowed\r\n", 33);
         }
     }
 }
 
 int main(int argc, char *argv[])
 {
-
-	int	listenfd, connfd;
+    
+    int    listenfd, httpVersion, connfd;
     pthread_t tid;
-	int     clilen;
-	struct 	sockaddr_in cliaddr, servaddr;
-
-	if (argc != 3) {
-		printf("Usage: caseServer <address> <port> \n");
+    int     clilen;
+    struct     sockaddr_in cliaddr, servaddr;
+    int convert = 0;
+    
+    bzero(&servaddr, sizeof(servaddr));
+    
+   if (argc == 1) {
+        printf("Usage: caseServer <address> <Optional: HTML version number (1 for 1.0, or 11 for 1.1)> <Optional: port> \n");
         return -1;
-	}
-
-	listenfd = socket(AF_INET, SOCK_STREAM, 0);
-	if (listenfd == -1)
-	{
-		fprintf(stderr, "Error unable to create socket, errno = %d (%s) \n",
+    }
+    
+    if(argc == 2)
+    {
+        httpVersion = 1; //Default to HTML 1.0
+        servaddr.sin_port = htons(8888);
+        printf("No HTTP version or port number detected. HTTP version is 1.0, and port is 8888.\n");
+    }
+    
+    if(argc == 3)
+    {
+        if ((convert = atoi(argv[2]) > 1024)) // have to convert from char to int for port check and http version check
+        {
+            servaddr.sin_port = htons(atoi(argv[2]));
+            httpVersion = 1;
+            printf("HTTP will default to version 1.0\n");
+        }
+        else if(atoi(argv[2]) < 20)
+        {
+            httpVersion = atoi(argv[2]);
+            servaddr.sin_port = htons(8888);
+            printf("Port will default to 8888\n");
+        }
+    }
+    
+    if(argc == 4)
+    {
+        servaddr.sin_port = htons(atoi(argv[3]));
+        httpVersion = htons(atoi(argv[2]));
+        
+    }
+    
+    listenfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (listenfd == -1)
+    {
+        fprintf(stderr, "Error unable to create socket, errno = %d (%s) \n",
                 errno, strerror(errno));
-		return -1;
-	}
-
-	bzero(&servaddr, sizeof(servaddr));
-
-	servaddr.sin_family 	   = AF_INET;
-	servaddr.sin_addr.s_addr   = inet_addr(argv[1]);
-	servaddr.sin_port          = htons(atoi(argv[2]));
-
-	if (bind(listenfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) == -1) {
+        return -1;
+    }
+    
+    servaddr.sin_family        = AF_INET;
+    servaddr.sin_addr.s_addr   = inet_addr(argv[1]);
+    //servaddr.sin_port          = htons(atoi(argv[3]));
+    
+    if (bind(listenfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) == -1) {
         fprintf(stderr, "Error binding to socket, errno = %d (%s) \n",
                 errno, strerror(errno));
         return -1;
-
-	}
-
-	if (listen(listenfd, backlog) == -1) {
+        
+    }
+    
+    if (listen(listenfd, backlog) == -1) {
         fprintf(stderr, "Error listening for connection request, errno = %d (%s) \n",
                 errno, strerror(errno));
         return -1;
-	}
-
-	
-	while (1) {
-		clilen = sizeof(cliaddr);
-		if ((connfd = accept(listenfd, (struct sockaddr *)&cliaddr, &clilen)) < 0 ) {
-			if (errno == EINTR)
-				continue;
-			else {
+    }
+    
+    
+    while (1) {
+        
+        clilen = sizeof(cliaddr);
+        if ((connfd = accept(listenfd, (struct sockaddr *)&cliaddr, &clilen)) < 0 ) {
+            if (errno == EINTR)
+                continue;
+            else {
                 fprintf(stderr, "Error connection request refused, errno = %d (%s) \n",
                         errno, strerror(errno));
-			}
-		}
-
-        if (pthread_create(&tid, NULL, clientHandler, (void *)&connfd) != 0) {
-           fprintf(stderr, "Error unable to create thread, errno = %d (%s) \n",
-                   errno, strerror(errno));
+            }
         }
-
-	}
+        
+        if (pthread_create(&tid, NULL, clientHandler, (void *)&connfd) != 0) {
+            fprintf(stderr, "Error unable to create thread, errno = %d (%s) \n",
+                    errno, strerror(errno));
+        }
+        
+    }
 }

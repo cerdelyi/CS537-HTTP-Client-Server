@@ -52,9 +52,9 @@ void str_client(FILE *fp, int socket_fd)
     memset((void *)rcvLine, 0, MAXLINE);
 
     const char* putheader =
-    "PUT new.html HTTP/1.1\n"
-    "Content-Type: text/html\n"
-    "Accept-Ranges: bytes\n"
+    "PUT /new.html HTTP/1.1\r\n"
+    "Content-Type: text/html\r\n"
+    "Accept-Ranges: bytes\r\n"
     "Content-Length: ";
 	
 	FILE* file = fopen("old.html", "r");
