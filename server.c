@@ -28,11 +28,8 @@ const int backlog = 4;
 
 void *clientHandler(void *arg)
 {
-    
     char str[MAXLINE];
-    
     int n;
-    
     
     const char* data =
     "HTTP/1.1 200 OK\r\n"
@@ -45,8 +42,6 @@ void *clientHandler(void *arg)
     "Content-Type: image/jpeg\r\n"
     "Accept-Ranges: bytes\r\n"
     "Content-Length: ";
-    
-    const char *trailingNewline = "\r\n\r\n";
 
     int fd = *(int*)(arg);
 	
@@ -55,6 +50,7 @@ void *clientHandler(void *arg)
 		char* path;		//hold path target for request
 		char* fileExtension;	//hold file extension of path target
 		char strcopy[MAXLINE];	//hold copy before strtok for PUT request
+		char* indexstr = "index.html";	//string for index filename
 		
         if ((n = read(fd, str, MAXLINE)) == 0) {
             write(fd, "closing connection", 18);
@@ -69,10 +65,7 @@ void *clientHandler(void *arg)
 		char* slashpath = strtok(NULL, " ");
 		//set path to "index.html" if request for default path
 		if(strcmp(slashpath, "/") == 0)
-		{
-			path = (char*) malloc(sizeof(char)*11);
-			strcpy(path, "index.html");
-		}
+			path = indexstr;
 		else
 			path = slashpath+1;
 		//extract file extension
@@ -100,27 +93,25 @@ void *clientHandler(void *arg)
 					
 					//read file data
 					fread(file_data, sizeof(char), fileLen, file);
+					fclose(file);
 					
-					//add file length to header
-					int ContentHeaderSize = fileLen;
-					char Content_Header_Length[ContentHeaderSize];
-					char* fullHeader = (char*) malloc(strlen(trailingNewline)+ strlen(data)+strlen(Content_Header_Length));
-					char* fullData = (char*) malloc(strlen(fullHeader)+ strlen(file_data));
+					//convert file length to string
+					char Content_Header_Length[50];
+					sprintf(Content_Header_Length, "%d\r\n\r\n", fileLen);
 					
-					snprintf(Content_Header_Length, ContentHeaderSize, "%d", ContentHeaderSize);
-					
-					//generate header and header+body
+					//make header
+					char* fullHeader = (char*) malloc(strlen(data)+strlen(Content_Header_Length));
 					strcpy(fullHeader, data);
 					strcat(fullHeader, Content_Header_Length);
-					strcat(fullHeader, trailingNewline);
-					strcpy(fullData, fullHeader);
-					strcat(fullData, file_data);
 					
 					//GET-> send header+body || HEAD-> send header
 					if(strcmp(r_type, "GET")==0)
-						write(fd, fullData, strlen(fullData)+1);
+					{
+						write(fd, fullHeader, strlen(fullHeader));
+						write(fd, file_data, fileLen);
+					}
 					else if (strcmp(r_type, "HEAD")==0)
-						write(fd, fullHeader, strlen(fullHeader)+1);
+						write(fd, fullHeader, strlen(fullHeader));
 				}
 				//request is jpg file
 				else if(strcmp(fileExtension, "jpg")==0)
@@ -132,21 +123,17 @@ void *clientHandler(void *arg)
 					rewind(file);
 					
 					fread(file_data, sizeof(char), fileLen+1, file);
-					
-					//CONVERT LENGTH OF IMAGE FILE TO TEXT FORMAT FOR HEADER
-					char Img_Content_Header_Length[fileLen];
-					sprintf(Img_Content_Header_Length, "%d", fileLen);
-					
-					//PUT IT ALL TOGETHER
-					char* fullImgHeader = malloc(strlen(trailingNewline) + strlen(Img_Content_Header_Length) + strlen(jpgHeader));
-					strcpy(fullImgHeader, jpgHeader);
-					strcat(fullImgHeader, Img_Content_Header_Length);
-					strcat(fullImgHeader, trailingNewline);
-					// strcat(fullImgHeader, file_data);
-					
-					//printf("file contents: %s", file_data);
 					fclose(file);
 					
+					//CONVERT LENGTH OF IMAGE FILE TO TEXT FORMAT FOR HEADER
+					char Img_Content_Header_Length[50];
+					sprintf(Img_Content_Header_Length, "%d\r\n\r\n", fileLen);
+					
+					//PUT IT ALL TOGETHER
+					char* fullImgHeader = malloc(strlen(Img_Content_Header_Length) + strlen(jpgHeader));
+					strcpy(fullImgHeader, jpgHeader);
+					strcat(fullImgHeader, Img_Content_Header_Length);
+										
 					if(strcmp(r_type, "GET")==0) {
 						write(fd, fullImgHeader, strlen(fullImgHeader));
 						write(fd, file_data, fileLen);
@@ -165,7 +152,7 @@ void *clientHandler(void *arg)
         else if(strcmp(r_type, "PUT")==0)
         {
 			//check if html file (other file types not supported)
-			if(strcmp(fileExtension, "html")==0)
+			if(strcmp(fileExtension, "html")==0 && strstr(strcopy, "Content-Type: text/html") != NULL)
 			{
 				char puthead[150];
 				//check if file exists
@@ -193,7 +180,7 @@ void *clientHandler(void *arg)
 					fwrite(bodyloc, sizeof(char), bodylen, file);
 				}
 				fclose(file);
-				
+				//send response
 				write(fd, puthead, strlen(puthead));
 			}
 			//file is not html
@@ -215,9 +202,7 @@ void *clientHandler(void *arg)
 				if (remove(path) == 0)
 					write(fd, "HTTP/1.1 204 No Content\r\n", 25);
 				else
-				{
 					write(fd, "HTTP/1.1 403 Forbidden\r\n\r\n<p>DELETE error: remove() failed.</p>", 63);
-				}
 			}
         }
         //not a GET, HEAD, PUT, DELETE request
