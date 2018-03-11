@@ -225,96 +225,62 @@ void *clientHandler(void *arg)
     }
 }
 
-
 int main(int argc, char *argv[])
 {
-    
-    int    listenfd, httpVersion, connfd;
+
+	int	listenfd, connfd;
     pthread_t tid;
-    int     clilen;
-    struct     sockaddr_in cliaddr, servaddr;
-    int convert = 0;
-    
-    bzero(&servaddr, sizeof(servaddr));
-    
-   if (argc == 1) {
-        printf("Usage: caseServer <address> <Optional: HTML version number (1 for 1.0, or 11 for 1.1)> <Optional: port> \n");
+	int     clilen;
+	struct 	sockaddr_in cliaddr, servaddr;
+
+	if (argc != 3) {
+		printf("Usage: caseServer <address> <port> \n");
         return -1;
-    }
-    
-    if(argc == 2)
-    {
-        httpVersion = 1; //Default to HTML 1.0
-        servaddr.sin_port = htons(8888);
-        printf("No HTTP version or port number detected. HTTP version is 1.0, and port is 8888.\n");
-    }
-    
-    if(argc == 3)
-    {
-        if ((convert = atoi(argv[2]) > 1024)) // have to convert from char to int for port check and http version check
-        {
-            servaddr.sin_port = htons(atoi(argv[2]));
-            httpVersion = 1;
-            printf("HTTP will default to version 1.0\n");
-        }
-        else if(atoi(argv[2]) < 20)
-        {
-            httpVersion = atoi(argv[2]);
-            servaddr.sin_port = htons(8888);
-            printf("Port will default to 8888\n");
-        }
-    }
-    
-    if(argc == 4)
-    {
-        servaddr.sin_port = htons(atoi(argv[3]));
-        httpVersion = htons(atoi(argv[2]));
-        
-    }
-    
-    listenfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (listenfd == -1)
-    {
-        fprintf(stderr, "Error unable to create socket, errno = %d (%s) \n",
+	}
+
+	listenfd = socket(AF_INET, SOCK_STREAM, 0);
+	if (listenfd == -1)
+	{
+		fprintf(stderr, "Error unable to create socket, errno = %d (%s) \n",
                 errno, strerror(errno));
-        return -1;
-    }
-    
-    servaddr.sin_family        = AF_INET;
-    servaddr.sin_addr.s_addr   = inet_addr(argv[1]);
-    //servaddr.sin_port          = htons(atoi(argv[3]));
-    
-    if (bind(listenfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) == -1) {
+		return -1;
+	}
+
+	bzero(&servaddr, sizeof(servaddr));
+
+	servaddr.sin_family 	   = AF_INET;
+	servaddr.sin_addr.s_addr   = inet_addr(argv[1]);
+	servaddr.sin_port          = htons(atoi(argv[2]));
+
+	if (bind(listenfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) == -1) {
         fprintf(stderr, "Error binding to socket, errno = %d (%s) \n",
                 errno, strerror(errno));
         return -1;
-        
-    }
-    
-    if (listen(listenfd, backlog) == -1) {
+
+	}
+
+	if (listen(listenfd, backlog) == -1) {
         fprintf(stderr, "Error listening for connection request, errno = %d (%s) \n",
                 errno, strerror(errno));
         return -1;
-    }
-    
-    
-    while (1) {
-        
-        clilen = sizeof(cliaddr);
-        if ((connfd = accept(listenfd, (struct sockaddr *)&cliaddr, &clilen)) < 0 ) {
-            if (errno == EINTR)
-                continue;
-            else {
+	}
+
+	
+	while (1) {
+		clilen = sizeof(cliaddr);
+		if ((connfd = accept(listenfd, (struct sockaddr *)&cliaddr, &clilen)) < 0 ) {
+			if (errno == EINTR)
+				continue;
+			else {
                 fprintf(stderr, "Error connection request refused, errno = %d (%s) \n",
                         errno, strerror(errno));
-            }
-        }
-        
-        if (pthread_create(&tid, NULL, clientHandler, (void *)&connfd) != 0) {
-            fprintf(stderr, "Error unable to create thread, errno = %d (%s) \n",
-                    errno, strerror(errno));
-        }
-        
-    }
-}
+			}
+		}
 
+        if (pthread_create(&tid, NULL, clientHandler, (void *)&connfd) != 0) {
+           fprintf(stderr, "Error unable to create thread, errno = %d (%s) \n",
+                   errno, strerror(errno));
+        }
+
+	}
+}
