@@ -55,10 +55,10 @@ void *clientHandler(void *arg)
 		char* r_type;	//hold request type
 		char* path;		//hold path target for request
 		char* fileExtension;	//hold file extension of path target
-		char* strcopy;	//hold copy before strtok for PUT request
+		char strcopy[MAXLINE];	//hold copy before strtok for PUT request
 		
         if ((n = read(fd, str, MAXLINE)) == 0) {
-            write(fd, "closing connection", MAXLINE);
+            write(fd, "closing connection", 18);
             close (fd);
             return 0;
         }
@@ -67,13 +67,15 @@ void *clientHandler(void *arg)
 		//extract request type
 		r_type = strtok(str, " ");
 		//extract path
-		path = strtok(NULL, " ");
+		char* slashpath = strtok(NULL, " ");
 		//set path to "index.html" if request for default path
-		if(strcmp(path, "/") == 0)
+		if(strcmp(slashpath, "/") == 0)
 		{
 			path = (char*) malloc(sizeof(char)*11);
-			strcpy(path, "index.html");
+			strcpy(path, "/index.html");
 		}
+		else
+			path = slashpath+1;
 		//extract file extension
 		fileExtension = path+strcspn(path, ".")+1;
 		
@@ -83,7 +85,7 @@ void *clientHandler(void *arg)
 			//check if file exists
 			if(access(path, F_OK) < 0)	//doesn't exist
 			{
-				write(fd, "HTTP/1.1 404 Not Found", MAXLINE);
+				write(fd, "HTTP/1.1 404 Not Found", 22);
 			}
 			else	//does exist
 			{
@@ -156,7 +158,7 @@ void *clientHandler(void *arg)
 				//file is not html or jpg
 				else
 				{
-					write(fd, "HTTP/1.1 415 Unsupported Media Type", MAXLINE);
+					write(fd, "HTTP/1.1 415 Unsupported Media Type", 35);
 				}
 			}
         }
@@ -191,36 +193,36 @@ void *clientHandler(void *arg)
 				}
 				fclose(file);
 				
-				write(fd, puthead, MAXLINE);
+				write(fd, puthead, strlen(puthead));
 			}
 			//file is not html
 			else
 			{
-				write(fd, "HTTP/1.1 415 Unsupported Media Type", MAXLINE);
+				write(fd, "HTTP/1.1 415 Unsupported Media Type", 35);
 			}
         }
         //respond to DELETE request    
-        if(strncmp(r_type, "DELETE", 6)==0)
+        else if(strcmp(r_type, "DELETE")==0)
         {
 			//check if file exists
 			if(access(path, F_OK ) < 0)	//doesn't exist
 			{
-				write(fd, "HTTP/1.1 404 Not Found", MAXLINE);
+				write(fd, "HTTP/1.1 404 Not Found", 22);
 			}
 			else	//does exist
 			{
 				if (remove(path) == 0)
-					write(fd, "HTTP/1.1 204 No Content", MAXLINE);
+					write(fd, "HTTP/1.1 204 No Content", 23);
 				else
 				{
-					write(fd, "HTTP/1.1 403 Forbidden\r\n\r\n<p>DELETE error: remove() failed.</p>", MAXLINE);
+					write(fd, "HTTP/1.1 403 Forbidden\r\n\r\n<p>DELETE error: remove() failed.</p>", 67);
 				}
 			}
         }
         //not a GET, HEAD, PUT, DELETE request
         else
 		{
-            write(fd, "HTTP/1.1 405 Method Not Allowed", MAXLINE);
+            write(fd, "HTTP/1.1 405 Method Not Allowed", 31);
         }
     }
 }
