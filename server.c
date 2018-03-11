@@ -1,11 +1,10 @@
-//
-//  CleanedServer.c
+//  server.c
 //  CS537_TCP_Server
 //
-//  Created by Christopher Erdelyi on 3/7/18.
-//  Copyright © 2018 Christopher Erdelyi. All rights reserved.
+//  Group Members: Christopher Erdelyi, John Wu
 //
-//
+//  Copyright © 2018 Christopher Erdelyi & John Wu. All rights reserved.
+
 
 #include <stdio.h>
 #include <string.h>
