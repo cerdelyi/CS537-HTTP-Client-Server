@@ -1,9 +1,6 @@
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
-#include <strings.h>
-
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -55,7 +52,7 @@ void str_client(FILE *fp, int socket_fd)
     memset((void *)sndLine, 0, MAXLINE);
     memset((void *)rcvLine, 0, MAXLINE);
 
-    const char* delreq ="DELETE new.html HTTP/1.1\n";
+    const char* delreq ="DELETE /new.html HTTP/1.1\r\n";
 	strcpy(sndLine, delreq);
 	
 	if (sndLine != NULL) {

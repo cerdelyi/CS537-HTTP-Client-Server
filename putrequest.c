@@ -1,12 +1,10 @@
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
-#include <strings.h>
-
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <stdlib.h>
 
 #define MAXLINE 256
 
@@ -14,7 +12,6 @@ void str_client(FILE *fp, int socket_fd);
 
 int main(int argc, char *argv[])
 {
-
 	int	socket_fd;
 	struct  sockaddr_in servaddr;
 
@@ -56,9 +53,9 @@ void str_client(FILE *fp, int socket_fd)
     memset((void *)rcvLine, 0, MAXLINE);
 
     const char* putheader =
-    "PUT new.html HTTP/1.1\n"
-    "Content-Type: text/html\n"
-    "Accept-Ranges: bytes\n"
+    "PUT /new.html HTTP/1.1\r\n"
+    "Content-Type: text/html\r\n"
+    "Accept-Ranges: bytes\r\n"
     "Content-Length: ";
 	
 	FILE* file = fopen("old.html", "r");
@@ -67,32 +64,24 @@ void str_client(FILE *fp, int socket_fd)
     char* file_data;
     rewind(file);
 
-	char clen[10];
-	sprintf(clen, "%d", fileLen);
+	char clen[20];
+	sprintf(clen, "%d\r\n\r\n", fileLen);
 	
-    file_data=malloc((strlen(putheader)+strlen(clen)+fileLen+3)*sizeof(char));
-	
-	strcpy(file_data, putheader);
-	strcat(file_data, clen);
-	
-	//strcat(putheader, clen);
-	
+    file_data= (char*) malloc(fileLen);
     if (file_data == NULL){
         printf("Memory error"); exit (2);
     }
-	char s = 10;
-	strncat(file_data,&s,1);
-	strncat(file_data,&s,1);
-	while(EOF!=(s=fgetc(file))){
-        strncat(file_data,&s,1);
-//		printf("byte: %02x \n", s);
-//		printf("char: %c \n", s);
-    }
-	s = 10;
-	strncat(file_data,&s,1);
+	fread(file_data, sizeof(char), fileLen, file);
 
+    char* put_request= (char*) malloc((strlen(putheader)+strlen(clen)+fileLen)*sizeof(char));
+	strcpy(put_request, putheader);
+	strcat(put_request, clen);
+	strcat(put_request, file_data);
 	
-	write(socket_fd, (void *)file_data, strlen(file_data));
+	write(socket_fd, (void *)put_request, strlen(put_request));
+	
+	free(file_data);
+	free(put_request);
 
     if (read(socket_fd, rcvLine, MAXLINE) == 0) {
 		   printf("ERROR: server terminated \n");
