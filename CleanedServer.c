@@ -50,9 +50,23 @@ void *clientHandler(void *arg)
     const char *trailingNewline = "\r\n\r\n";
 
     int fd = *(int*)(arg);
-    char* string_tokens;
-    char fileExtension[6];
-    
+	char* r_type;	//hold request type
+	char* path;		//hold path target for request
+    char* fileExtension;	//hold file extension of path target
+	
+	//extract request type
+	r_type = strtok(str, " ");
+	//extract path
+	path = strtok(NULL, " ");
+	//set path to "index.html" if request for default path
+    if(strcmp(path, "/") == 0)
+	{
+		path = (char*) malloc(11);
+		strcpy(path, "index.html");
+	}
+	//extract file extension
+	fileExtension = path+strcspn(path, ".")+1;
+	
     
     while (1) {
         
@@ -62,134 +76,139 @@ void *clientHandler(void *arg)
             return 0;
         }
         
-        
-        string_tokens= strtok(str, " ");
-        if (strncmp(string_tokens, "GET", 3)==0)
+		//respond to GET or HEAD request
+        if (strcmp(r_type, "GET")==0 || strcmp(r_type, "HEAD")==0)
         {
-            char* fileExtensionSearch = string_tokens;
-            
-          
-                string_tokens= strtok(NULL, " ");
-                if((fileExtensionSearch = strrchr(string_tokens, '.')) != NULL)
-                   {
-                       if(strcmp(fileExtensionSearch, ".jpg")==0)
-                       {
-                           strcpy(fileExtension, "jpg");
-                       }
-                       
-                       if(strcmp(fileExtensionSearch, ".html")==0)
-                       {
-                           strcpy(fileExtension, "html");
-                       }
-                   }
-            
-                 if((fileExtensionSearch = strrchr(string_tokens, '.')) == NULL) // Default case for browser sending GET / HTTP/1.X
-                 {
-                     strcpy(fileExtension, "html");
-                 }
-            
-            if(strcmp(fileExtension, "html")==0)
-            {
-                //Check for HTML file request
-                //if(strncmp(string_tokens, "/", 3)==0)    //Default case. Browser is asking for index.html
-               // {
-                    char* string_copy = string_tokens + 1;
-                
-                    char* fileToOpen;
-                
-                    if(strncmp(string_tokens, "/",3)==0)     //Default case. Browser is asking for index.html
-                    {
-                        fileToOpen = (char*) malloc(11);
-                        strcpy(fileToOpen, "index.html");
-                    }
-                    else
-                    {
-                        fileToOpen = (char*) malloc(strlen(string_tokens));
-                        strcpy(fileToOpen, string_copy);
-                    }
-                  
-                    FILE* file = fopen(fileToOpen, "r");
-                    fseek(file, 0, SEEK_END);
-                    int fileLen=ftell(file);
-                    char file_data[fileLen];
-                    rewind(file);
-                    
-                    fread(file_data, sizeof(char), fileLen, file);
-    
-                    int ContentHeaderSize = fileLen;
-                    char Content_Header_Length[ContentHeaderSize];
-                    char* fullHeader = (char*) malloc(strlen(trailingNewline)+ strlen(data)+strlen(Content_Header_Length));
-                    char* fullData = (char*) malloc(strlen(fullHeader)+ strlen(file_data));
-                    
-                    snprintf(Content_Header_Length, ContentHeaderSize, "%d", ContentHeaderSize);
-                    
-                    strcpy(fullHeader, data);
-                    strcat(fullHeader, Content_Header_Length);
-                    strcat(fullHeader, trailingNewline);
-                    strcpy(fullData, fullHeader);
-                    strcat(fullData, file_data);
-                    
-                    write(fd, fullData, strlen(fullData)+1);
-               // }
-            }
-            
-            if(strcmp(fileExtension, "jpg")==0)
-            {
-                char* string_copy = string_tokens + 1;
-                //Check for image file request
-                
-                    char* fileToOpen = (char*) malloc(strlen(string_copy));
-                    strcpy(fileToOpen, string_copy);
-                    
-                    FILE* file = fopen(fileToOpen, "rb");
-                    fseek(file, 0, SEEK_END);
-                    int fileLen=ftell(file);
-                    char file_data[fileLen];
-                    rewind(file);
-                    
-                    fread(file_data, sizeof(char), fileLen+1, file);
-                    
-                    //CONVERT LENGTH OF IMAGE FILE TO TEXT FORMAT FOR HEADER
-                    char Img_Content_Header_Length[fileLen];
-                    sprintf(Img_Content_Header_Length, "%d", fileLen);
-                    
-                    //PUT IT ALL TOGETHER
-                    char* fullImgHeader = malloc(strlen(trailingNewline) + strlen(Img_Content_Header_Length) + strlen(jpgHeader));
-                    strcpy(fullImgHeader, jpgHeader);
-                    strcat(fullImgHeader, Img_Content_Header_Length);
-                    strcat(fullImgHeader, trailingNewline);
-                    // strcat(fullImgHeader, file_data);
-                    
-                    //printf("file contents: %s", file_data);
-                    fclose(file);
-                    
-                    write(fd, fullImgHeader, strlen(fullImgHeader));
-                    write(fd, file_data, fileLen);
-                }
-            }
+			//check if file exists
+			if(access(path, F_OK ) < 0)	//doesn't exist
+			{
+				write(fd, "HTTP/1.1 404 Not Found", MAXLINE);
+			}
+			else	//does exist
+			{
+				//request is about html file
+				if(strcmp(fileExtension, "html")==0)
+				{
+					//open file and find file length
+					FILE* file = fopen(path, "r");
+					fseek(file, 0, SEEK_END);
+					int fileLen=ftell(file);
+					char file_data[fileLen];
+					rewind(file);
+					
+					//read file data
+					fread(file_data, sizeof(char), fileLen, file);
+					
+					//add file length to header
+					int ContentHeaderSize = fileLen;
+					char Content_Header_Length[ContentHeaderSize];
+					char* fullHeader = (char*) malloc(strlen(trailingNewline)+ strlen(data)+strlen(Content_Header_Length));
+					char* fullData = (char*) malloc(strlen(fullHeader)+ strlen(file_data));
+					
+					snprintf(Content_Header_Length, ContentHeaderSize, "%d", ContentHeaderSize);
+					
+					//generate header and header+body
+					strcpy(fullHeader, data);
+					strcat(fullHeader, Content_Header_Length);
+					strcat(fullHeader, trailingNewline);
+					strcpy(fullData, fullHeader);
+					strcat(fullData, file_data);
+					
+					//GET-> send header+body || HEAD-> send header
+					if(strcmp(r_type, "GET")==0)
+						write(fd, fullData, strlen(fullData)+1);
+					else if (strcmp(r_type, "HEAD")==0)
+						write(fd, fullHeader, strlen(fullHeader)+1);
+				}
+				//request is about jpg file
+				else if(strcmp(fileExtension, "jpg")==0)
+				{
+					FILE* file = fopen(path, "rb");
+					fseek(file, 0, SEEK_END);
+					int fileLen=ftell(file);
+					char file_data[fileLen];
+					rewind(file);
+					
+					fread(file_data, sizeof(char), fileLen+1, file);
+					
+					//CONVERT LENGTH OF IMAGE FILE TO TEXT FORMAT FOR HEADER
+					char Img_Content_Header_Length[fileLen];
+					sprintf(Img_Content_Header_Length, "%d", fileLen);
+					
+					//PUT IT ALL TOGETHER
+					char* fullImgHeader = malloc(strlen(trailingNewline) + strlen(Img_Content_Header_Length) + strlen(jpgHeader));
+					strcpy(fullImgHeader, jpgHeader);
+					strcat(fullImgHeader, Img_Content_Header_Length);
+					strcat(fullImgHeader, trailingNewline);
+					// strcat(fullImgHeader, file_data);
+					
+					//printf("file contents: %s", file_data);
+					fclose(file);
+					
+					if(strcmp(r_type, "GET")==0) {
+						write(fd, fullImgHeader, strlen(fullImgHeader));
+						write(fd, file_data, fileLen);
+					}
+					else if (strcmp(r_type, "HEAD")==0)
+						write(fd, fullImgHeader, strlen(fullImgHeader));
+				}
+				//file is not html or jpg
+				else
+				{
+					write(fd, "HTTP/1.1 415 Unsupported Media Type", MAXLINE);
+				}
+			}
         }
-        
-        if(strncmp(string_tokens, "PUT", 3)==0)
+		//respond to PUT request
+        else if(strcmp(r_type, "PUT")==0)
         {
-            
+			//check if html file (other file types not supported)
+			if(strcmp(fileExtension, "html")==0)
+			{
+				char* puthead;
+				//check if file exists
+				if(access(path, F_OK ) < 0)	//doesn't exist
+				{
+					strcpy(puthead, "HTTP/1.1 201 Created\nContent-Location: ");
+					strcat(puthead, path);
+				}
+				else	//does exist
+				{
+					strcpy(puthead, "HTTP/1.1 204 No Content\nContent-Location: ");
+					strcat(puthead, path);		
+				}
+				//write file
+				
+				write(fd, puthead, MAXLINE);
+			}
+			//file is not html
+			else
+			{
+				write(fd, "HTTP/1.1 415 Unsupported Media Type", MAXLINE);
+			}
         }
-        
-        if(strncmp(string_tokens, "HEAD", 4)==0)
+        //respond to DELETE request    
+        if(strncmp(r_type, "DELETE", 6)==0)
         {
-            
-            
+			//check if file exists
+			if(access(path, F_OK ) < 0)	//doesn't exist
+			{
+				write(fd, "HTTP/1.1 404 Not Found", MAXLINE);
+			}
+			else	//does exist
+			{
+				if (remove(path) == 0)
+					write(fd, "HTTP/1.1 204 No Content", MAXLINE);
+				//else ?a different response?
+			}
         }
-        
-        if(strncmp(string_tokens, "DELETE", 6)==0)
-        {
-            
-            
-        }
-        
-        else {      // SEND 404 ERROR
-            write(fd, "404 error", MAXLINE);
+        //not a GET, HEAD, PUT, DELETE request
+        else
+		{
+            write(fd, "405 Method Not Allowed", MAXLINE);
         }
     }
+}
 
 
 int main(int argc, char *argv[])
