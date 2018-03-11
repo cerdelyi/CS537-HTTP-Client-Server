@@ -50,43 +50,44 @@ void *clientHandler(void *arg)
     const char *trailingNewline = "\r\n\r\n";
 
     int fd = *(int*)(arg);
-	char* r_type;	//hold request type
-	char* path;		//hold path target for request
-    char* fileExtension;	//hold file extension of path target
 	
-	//extract request type
-	r_type = strtok(str, " ");
-	//extract path
-	path = strtok(NULL, " ");
-	//set path to "index.html" if request for default path
-    if(strcmp(path, "/") == 0)
-	{
-		path = (char*) malloc(11);
-		strcpy(path, "index.html");
-	}
-	//extract file extension
-	fileExtension = path+strcspn(path, ".")+1;
-	
-    
     while (1) {
-        
+		char* r_type;	//hold request type
+		char* path;		//hold path target for request
+		char* fileExtension;	//hold file extension of path target
+		char* strcopy;	//hold copy before strtok for PUT request
+		
         if ((n = read(fd, str, MAXLINE)) == 0) {
             write(fd, "closing connection", MAXLINE);
             close (fd);
             return 0;
         }
-        
+		//create copy in case PUT		
+		strcpy(strcopy,str);
+		//extract request type
+		r_type = strtok(str, " ");
+		//extract path
+		path = strtok(NULL, " ");
+		//set path to "index.html" if request for default path
+		if(strcmp(path, "/") == 0)
+		{
+			path = (char*) malloc(sizeof(char)*11);
+			strcpy(path, "index.html");
+		}
+		//extract file extension
+		fileExtension = path+strcspn(path, ".")+1;
+		
 		//respond to GET or HEAD request
         if (strcmp(r_type, "GET")==0 || strcmp(r_type, "HEAD")==0)
         {
 			//check if file exists
-			if(access(path, F_OK ) < 0)	//doesn't exist
+			if(access(path, F_OK) < 0)	//doesn't exist
 			{
 				write(fd, "HTTP/1.1 404 Not Found", MAXLINE);
 			}
 			else	//does exist
 			{
-				//request is about html file
+				//request is html file
 				if(strcmp(fileExtension, "html")==0)
 				{
 					//open file and find file length
@@ -120,7 +121,7 @@ void *clientHandler(void *arg)
 					else if (strcmp(r_type, "HEAD")==0)
 						write(fd, fullHeader, strlen(fullHeader)+1);
 				}
-				//request is about jpg file
+				//request is jpg file
 				else if(strcmp(fileExtension, "jpg")==0)
 				{
 					FILE* file = fopen(path, "rb");
@@ -176,8 +177,19 @@ void *clientHandler(void *arg)
 				{
 					strcpy(puthead, "HTTP/1.1 204 No Content\nContent-Location: ");
 					strcat(puthead, path);		
-				}
+				}				
+				//get length
+				char* lenloc = strstr(strcopy, "Content-Length: ");
+				int bodylen = atoi(lenloc+16);
+				//get body
+				char* bodyloc = strstr(strcopy, "\r\n\r\n") + 4;
 				//write file
+				FILE* file = fopen(path, "w");
+				if(file!=NULL)
+				{
+					fwrite(bodyloc, sizeof(char), bodylen, file);
+				}
+				fclose(file);
 				
 				write(fd, puthead, MAXLINE);
 			}
@@ -199,13 +211,16 @@ void *clientHandler(void *arg)
 			{
 				if (remove(path) == 0)
 					write(fd, "HTTP/1.1 204 No Content", MAXLINE);
-				//else ?a different response?
+				else
+				{
+					write(fd, "HTTP/1.1 403 Forbidden\r\n\r\n<p>DELETE error: remove() failed.</p>", MAXLINE);
+				}
 			}
         }
         //not a GET, HEAD, PUT, DELETE request
         else
 		{
-            write(fd, "405 Method Not Allowed", MAXLINE);
+            write(fd, "HTTP/1.1 405 Method Not Allowed", MAXLINE);
         }
     }
 }
