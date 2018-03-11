@@ -167,7 +167,7 @@ void *clientHandler(void *arg)
 			//check if html file (other file types not supported)
 			if(strcmp(fileExtension, "html")==0)
 			{
-				char* puthead;
+				char puthead[150];
 				//check if file exists
 				if(access(path, F_OK ) < 0)	//doesn't exist
 				{
