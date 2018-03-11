@@ -26,91 +26,52 @@
 
 const int backlog = 4;
 
+struct threadParams{
+    int passedFd;
+    int passedHTTP;
+};
 
-void *clientHandler(void *arg)
+
+void *clientHandler(void* arg)
 {
     
     char str[MAXLINE];
-    
     int n;
     
+    struct threadParams *passedParams = (struct threadParams*) arg;
+    printf("Thread params %d\n", passedParams->passedHTTP);
+    int passedVersion = passedParams->passedHTTP;
     
-    const char* data =
-    "HTTP/1.1 200 OK\n"
-    "Content-Type: text/html\n"
-    "Accept-Ranges: bytes\n"
+    printf("passedVersion: %d\n", passedVersion);
+    
+    const char* htmlHeader =
+    "Content-Type: text/html\r\n"
+    "Accept-Ranges: bytes\r\n"
     "Content-Length: ";
     
     const char* jpgHeader =
-    "HTTP/1.1 200 OK\n"
-    "Content-Type: image/jpeg\n"
-    "Accept-Ranges: bytes\n"
+    "Content-Type: image/jpeg\r\n"
+    "Accept-Ranges: bytes\r\n"
     "Content-Length: ";
     
     const char *trailingNewline = "\r\n\r\n";
-    
- //   char* buffer;
-    size_t size = 10;
-    
-    //    int testLength = msgLength(data1);
-    
-    int fd = *(int*)(arg);
-    char* string_tokens;
-    //  char* getCommand = "GET";
-    
-  //  FILE* testHTML = fopen("test.html", "r");
-    
-    // char inputString[999];
-    
-    
-   /* int ch;
-    size_t len = 0;
-    buffer = realloc(NULL, sizeof(char)*size);//size is start size
-    
-    
-    
-    while(EOF!=(ch=fgetc(testHTML))){
-        buffer[len++]=ch;
-        if(len==size){
-            buffer = realloc(buffer, sizeof(char)*(size+=16));
-        }
+     printf("passedVersion: %d\n", passedVersion);
+    ////////////////////////////
+    char httpHead[20];
+    if(passedVersion == 10)
+    {
+        strcpy(httpHead, "HTTP/1.0 200 OK\r\n");
     }
-    buffer[len++]='\0';
+    if(passedVersion == 11)
+    {
+        strcpy(httpHead, "HTTP/1.1 200 OK\r\n");
+    }
     
     
-    buffer = realloc(buffer, sizeof(char)*len);
+    int fd = (passedParams->passedFd);
+    char* string_tokens;
+    char fileExtension[6];
     
-    fclose(testHTML);
-    */
-    
-    ////////////////////////////////////////////////
-    // IMAGE HANDLING SECTION
-    
-    /*
-     FILE* testGif = fopen("indyicon.jpg", "r");
-     int gifsize;
-     fseek(testGif, 0, SEEK_END);
-     gifsize = ftell(testGif);
-     fseek(testGif, 0, SEEK_SET);
-     
-     char* fullGifHeader = (char*) malloc(10+strlen(gifHeader)+gifsize);
-     char* gifContentSize= (char*) malloc(gifsize);
-     
-     snprintf(gifContentSize, gifsize, "%d", gifsize);
-     strcpy(fullGifHeader, gifHeader);
-     strcat(fullGifHeader, gifContentSize);
-     strcat(fullGifHeader, trailingNewline);
-     
-     //Send Picture as Byte Array
-     
-     char send_buffer[1];
-     while(!feof(testGif)) {
-     fread(send_buffer, 1, sizeof(send_buffer), testGif);
-     strcat(fullGifHeader, send_buffer);
-     //write(fd, send_buffer, sizeof(send_buffer));
-     bzero(send_buffer, sizeof(send_buffer));
-     } */
-
     
     while (1) {
         
@@ -122,27 +83,52 @@ void *clientHandler(void *arg)
         
         
         string_tokens= strtok(str, " ");
-        if (strncmp(string_tokens, "GET", 3)==0){
+        if (strncmp(string_tokens, "GET", 3)==0)
+        {
+            char* fileExtensionSearch = string_tokens;
             
-          
-            string_tokens= strtok(NULL, " ");
+                string_tokens= strtok(NULL, " ");
+                if((fileExtensionSearch = strrchr(string_tokens, '.')) != NULL)
+                   {
+                       if(strcmp(fileExtensionSearch, ".jpg")==0)
+                       {
+                           strcpy(fileExtension, "jpg");
+                       }
+                       
+                       if(strcmp(fileExtensionSearch, ".html")==0)
+                       {
+                           strcpy(fileExtension, "html");
+                       }
+                   }
             
+                 if((fileExtensionSearch = strrchr(string_tokens, '.')) == NULL) // Default case for browser sending GET / HTTP/1.X
+                 {
+                     strcpy(fileExtension, "html");
+                 }
+            
+            if(strcmp(fileExtension, "html")==0)
+            {
                 //Check for HTML file request
-                if(strncmp(string_tokens, "/", 3)==0)    //Default case. Browser is asking for index.html
-                {
-                    
-                    char* fileToOpen = (char*) malloc(strlen(string_tokens));
-                    
-                    strcpy(fileToOpen, string_tokens);
-                   
-                    if(strncmp(fileToOpen, "/",1)==0)
+               
+              
+                    char* string_copy = string_tokens + 1;
+                
+                    char* fileToOpen;
+                
+                    if(strncmp(string_tokens, "/",3)==0)     //Default case. Browser is asking for index.html
                     {
+                        fileToOpen = (char*) malloc(11);
                         strcpy(fileToOpen, "index.html");
+                    }
+                    else
+                    {
+                        fileToOpen = (char*) malloc(strlen(string_tokens));
+                        strcpy(fileToOpen, string_copy);
                     }
                   
                     FILE* file = fopen(fileToOpen, "r");
                     fseek(file, 0, SEEK_END);
-                    int fileLen=ftell(file);
+                    long fileLen=ftell(file);
                     char file_data[fileLen];
                     rewind(file);
                     
@@ -150,26 +136,29 @@ void *clientHandler(void *arg)
     
                     int ContentHeaderSize = fileLen;
                     char Content_Header_Length[ContentHeaderSize];
-                    char* fullHeader = (char*) malloc(strlen(trailingNewline)+ strlen(data)+strlen(Content_Header_Length));
+                    char* fullHeader = (char*) malloc(strlen(trailingNewline)+ strlen(htmlHeader)+strlen(Content_Header_Length)+strlen(httpHead));
                     char* fullData = (char*) malloc(strlen(fullHeader)+ strlen(file_data));
                     
                     snprintf(Content_Header_Length, ContentHeaderSize, "%d", ContentHeaderSize);
                     
-                    strcpy(fullHeader, data);
+                    strcpy(fullHeader, httpHead);
+                    strcat(fullHeader, htmlHeader);
                     strcat(fullHeader, Content_Header_Length);
                     strcat(fullHeader, trailingNewline);
                     strcpy(fullData, fullHeader);
                     strcat(fullData, file_data);
-                    
-                    write(fd, fullData, strlen(fullData)+1);
-                }
+                printf("%s\n", file_data);
+                    write(fd, fullData, strlen(fullData));
+               
+            }
             
-            
+            if(strcmp(fileExtension, "jpg")==0)
+            {
+                char* string_copy = string_tokens + 1;
                 //Check for image file request
-                if (strncmp(string_tokens, "/indyicon.jpg", 12)==0)
-                {
-                    char* fileToOpen = (char*) malloc(strlen(string_tokens));
-                    strcpy(fileToOpen, "indyicon.jpg");
+                
+                    char* fileToOpen = (char*) malloc(strlen(string_copy));
+                    strcpy(fileToOpen, string_copy);
                     
                     FILE* file = fopen(fileToOpen, "rb");
                     fseek(file, 0, SEEK_END);
@@ -184,8 +173,9 @@ void *clientHandler(void *arg)
                     sprintf(Img_Content_Header_Length, "%d", fileLen);
                     
                     //PUT IT ALL TOGETHER
-                    char* fullImgHeader = malloc(strlen(trailingNewline) + strlen(Img_Content_Header_Length) + strlen(jpgHeader));
-                    strcpy(fullImgHeader, jpgHeader);
+                    char* fullImgHeader = malloc(strlen(trailingNewline) + strlen(Img_Content_Header_Length) + strlen(jpgHeader)+strlen(httpHead)+10);
+                    strcpy(fullImgHeader, httpHead);
+                    strcat(fullImgHeader, jpgHeader);
                     strcat(fullImgHeader, Img_Content_Header_Length);
                     strcat(fullImgHeader, trailingNewline);
                     // strcat(fullImgHeader, file_data);
@@ -196,21 +186,21 @@ void *clientHandler(void *arg)
                     write(fd, fullImgHeader, strlen(fullImgHeader));
                     write(fd, file_data, fileLen);
                 }
-            
+            }
         }
         
-        if(strncmp(string_tokens, "PUT", 3))
+        if(strncmp(string_tokens, "PUT", 3)==0)
         {
             
         }
         
-        if(strncmp(string_tokens, "HEAD", 4))
+        if(strncmp(string_tokens, "HEAD", 4)==0)
         {
             
             
         }
         
-        if(strncmp(string_tokens, "DELETE", 6))
+        if(strncmp(string_tokens, "DELETE", 6)==0)
         {
             
             
@@ -219,31 +209,56 @@ void *clientHandler(void *arg)
         else {      // SEND 404 ERROR
             write(fd, "404 error", MAXLINE);
         }
-        
-        
-        //    free(buffer);
-        //    free(fullHeader);
-        //    free(fullData);
-        
-        
     }
-    
-    
-}
+
 
 int main(int argc, char *argv[])
 {
     
-    int    listenfd, connfd;
+    int    listenfd, httpVersion=0, connfd;
     pthread_t tid;
     int     clilen;
     struct     sockaddr_in cliaddr, servaddr;
+    int convert = 0;
+    struct threadParams *passedParams;
     
-    if (argc != 3) {
-        printf("Usage: caseServer <address> <port> \n");
+    bzero(&servaddr, sizeof(servaddr));
+    
+   if (argc == 1) {
+        printf("Usage: caseServer <address> <Optional: HTML version number (1 for 1.0, or 11 for 1.1)> <Optional: port> \n");
         return -1;
     }
     
+    if(argc == 2)
+    {
+        httpVersion = 10; //Default to HTML 1.0
+        servaddr.sin_port = htons(8888);
+        printf("No HTTP version or port number detected. HTTP version is 1.0, and port is 8888.\n");
+    }
+    
+    if(argc == 3)
+    {
+        if ((convert = atoi(argv[2]) > 1024)) // have to convert from char to int for port check and http version check
+        {
+            servaddr.sin_port = htons(atoi(argv[2]));
+            httpVersion = 10;
+            printf("HTTP will default to version 1.0\n");
+        }
+        else if(atoi(argv[2]) < 20)
+        {
+            httpVersion = atoi(argv[2]);
+            servaddr.sin_port = htons(8888);
+            printf("Port will default to 8888\n");
+        }
+    }
+    
+    if(argc == 4)
+    {
+        servaddr.sin_port = htons(atoi(argv[3]));
+        httpVersion = atoi(argv[2]);
+        
+    }
+    printf("HTTP: %d\n", httpVersion);
     
     listenfd = socket(AF_INET, SOCK_STREAM, 0);
     if (listenfd == -1)
@@ -253,11 +268,11 @@ int main(int argc, char *argv[])
         return -1;
     }
     
-    bzero(&servaddr, sizeof(servaddr));
-    
     servaddr.sin_family        = AF_INET;
     servaddr.sin_addr.s_addr   = inet_addr(argv[1]);
-    servaddr.sin_port          = htons(atoi(argv[2]));
+    //servaddr.sin_port          = htons(atoi(argv[3]));
+    
+
     
     if (bind(listenfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) == -1) {
         fprintf(stderr, "Error binding to socket, errno = %d (%s) \n",
@@ -274,8 +289,16 @@ int main(int argc, char *argv[])
     
     
     while (1) {
+        
+
+        
         clilen = sizeof(cliaddr);
-        if ((connfd = accept(listenfd, (struct sockaddr *)&cliaddr, &clilen)) < 0 ) {
+        connfd = accept(listenfd, (struct sockaddr *)&cliaddr, &clilen);
+        passedParams = malloc(sizeof(*passedParams));
+        passedParams -> passedFd = connfd;
+        passedParams -> passedHTTP = httpVersion;
+        
+        if ((connfd < 0 )) {
             if (errno == EINTR)
                 continue;
             else {
@@ -284,7 +307,7 @@ int main(int argc, char *argv[])
             }
         }
         
-        if (pthread_create(&tid, NULL, clientHandler, (void *)&connfd) != 0) {
+        if (pthread_create(&tid, NULL, clientHandler, (void *)passedParams) != 0) {
             fprintf(stderr, "Error unable to create thread, errno = %d (%s) \n",
                     errno, strerror(errno));
         }
