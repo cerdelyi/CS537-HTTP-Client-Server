@@ -208,7 +208,7 @@ void *clientHandler(void *arg)
 					if(passedVersion == 11)
 						write(fd, fouronefive, strlen(fouronefive)+1);
 					else
-						write(fd, fouroneone, strlen(fouroneone));
+						write(fd, fouroneone, strlen(fouroneone)+1);
 				}
 			}
 		}
@@ -269,16 +269,16 @@ void *clientHandler(void *arg)
 				if (remove(path) == 0)
 					write(fd, "HTTP/1.1 204 No Content\r\n", 25);
 				else
-					write(fd, fouronethree_del, strlen(fouronethree_del));
+					write(fd, fouronethree_del, strlen(fouronethree_del)+1);
 			}
 		}
 		//not a GET, HEAD, PUT, DELETE request
 		else
 		{
 			if(passedVersion == 11)
-				write(fd, fourzerofive, strlen(fourzerofive));
+				write(fd, fourzerofive, strlen(fourzerofive)+1);
 			else
-				write(fd, fouroneone, strlen(fouroneone));
+				write(fd, fouroneone, strlen(fouroneone)+1);
 		}
 	}
 }
