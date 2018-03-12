@@ -43,6 +43,15 @@ void *clientHandler(void *arg)
     "Accept-Ranges: bytes\r\n"
     "Content-Length: ";
 
+    const char* fourzerofour =
+    "HTTP/1.1 404 Not Found\r\n"
+    "Connection: closed\r\n"
+    "Content-Type: text/html\r\n\r\n"
+    "<html>\n"
+	"<head><title>404</title></head>\n"
+	"<body>404 Not Found</body>\n"
+	"</html>\n";
+
     int fd = *(int*)(arg);
 	
     while (1) {
@@ -77,7 +86,7 @@ void *clientHandler(void *arg)
 			//check if file exists
 			if(access(path, F_OK) < 0)	//doesn't exist
 			{
-				write(fd, "HTTP/1.1 404 Not Found\r\n", 24);
+				write(fd, fourzerofour, strlen(fourzerofour);
 			}
 			else	//does exist
 			{
