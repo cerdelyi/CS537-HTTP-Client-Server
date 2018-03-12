@@ -1,19 +1,22 @@
+Start server in 1.0
+GET index
+GET non-existant file (should return 1.0 404)
+GET a gif file (should return 400)
+PUT or DELETE (should return 400 with Allow: header field)
 
-Test cases:
+Start server in 1.1
+GET index
+GET a jpg file
+GET a file in a subdirectory
+GET non-existant file (should return 1.1 404)
+GET a gif file (should return 415)
 
-GET existing file
-GET index.html (without specifying, ie. default path)
-GET non-existant file
-
-GET existing jpeg
-GET non-existant jpeg
-
-HEAD existing file
-HEAD non-existant file
-
-PUT new file (ie. nothing at that path yet)
-PUT at existing file
-GET file that was put
-
-DELETE existing file
-DELETE non-existant file
+HEAD new.html (should 404)
+DELETE new.html (should 404)
+PUT new.html
+GET new.html (in browser)
+change some words in old.html
+PUT new.html (in browser)
+HEAD new.html
+DELETE new.html
+GET new.html (in browser, should 404)
