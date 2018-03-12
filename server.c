@@ -53,11 +53,19 @@ void *clientHandler(void *arg)
     "Content-Length: ";
     
     const char* fourzerofour =
-    "HTTP/1.1 404 Not Found\r\n"
+    " 404 Not Found\r\n"
     "Content-Type: text/html\r\n"
     "Connection: close\r\n"
     "Content-Length: 52\r\n\r\n"
     "<html><body><b>404 File Not Found</b></body></html>";
+    
+    const char* fouronefive =
+    " 415 Unsupported Media Type\r\n"
+    "Content-Type: text/html\r\n"
+    "Connection: close\r\n"
+    "Content-Length: 60\r\n\r\n"
+    "<html><body><b>415 Unsupported Media Type</b></body></html>";
+    
     
     char httpHead[20];
     if(passedVersion == 10)
@@ -103,7 +111,10 @@ void *clientHandler(void *arg)
             //check if file exists
             if(access(path, F_OK) < 0)    //doesn't exist
             {
-                write(fd, fourzerofour, strlen(fourzerofour)+1);
+                char* fourZeroFourError = (char*) malloc(strlen(httpHead)+(strlen(fourzerofour)));
+                strcpy(fourZeroFourError, httpHead);
+                strcat(fourZeroFourError, fourzerofour);
+                write(fd, fourZeroFourError, strlen(fourZeroFourError)+1);
             }
             else    //does exist
             {
@@ -172,7 +183,10 @@ void *clientHandler(void *arg)
                 //file is not html or jpg
                 else
                 {
-                    write(fd, "HTTP/1.1 415 Unsupported Media Type\r\n", 37);
+                    char* fourOneFiveError = (char*) malloc(strlen(httpHead)+(strlen(fouronefive)));
+                    strcpy(fourOneFiveError, httpHead);
+                    strcat(fourOneFiveError, fouronefive);
+                    write(fd, fourOneFiveError, strlen(fourOneFiveError)+1);
                 }
             }
         }
@@ -223,7 +237,10 @@ void *clientHandler(void *arg)
             //check if file exists
             if(access(path, F_OK ) < 0)    //doesn't exist
             {
-                write(fd, fourzerofour, strlen(fourzerofour)+1);
+                char* fourZeroFourError = (char*) malloc(strlen(httpHead)+(strlen(fourzerofour)));
+                strcpy(fourZeroFourError, httpHead);
+                strcat(fourZeroFourError, fourzerofour);
+                write(fd, fourZeroFourError, strlen(fourZeroFourError)+1);
             }
             else    //does exist
             {
@@ -236,7 +253,10 @@ void *clientHandler(void *arg)
         //not a GET, HEAD, PUT, DELETE request
         else
         {
-            write(fd, "HTTP/1.1 405 Method Not Allowed\r\n", 33);
+            char* fourZeroFourError = (char*) malloc(strlen(httpHead)+(strlen(fourzerofour)));
+            strcpy(fourZeroFourError, httpHead);
+            strcat(fourZeroFourError, fourzerofour);
+            write(fd, fourZeroFourError, strlen(fourZeroFourError)+1);
         }
     }
 }
