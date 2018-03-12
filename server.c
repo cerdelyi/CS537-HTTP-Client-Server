@@ -52,12 +52,34 @@ void *clientHandler(void *arg)
 	"Accept-Ranges: bytes\r\n"
 	"Content-Length: ";
 	
+	const char* fouroneone =
+	"HTTP/1.0 400 Bad Request\r\n"
+	"Content-Type: text/html\r\n"
+	"Connection: close\r\n"
+	"Content-Length: 49\r\n\r\n"
+	"<html><body><b>400 Bad Request</b></body></html>";
+
+	const char* fouronethree_del =
+	"HTTP/1.1 403 Forbidden\r\n"
+	"Content-Type: text/html\r\n"
+	"Connection: close\r\n"
+	"Content-Length: 75\r\n\r\n"
+	"<html><body><b>403 Forbidden<br><br>DELETE unsuccessful.</b></body></html>";
+
 	const char* fourzerofour =
 	" 404 Not Found\r\n"
 	"Content-Type: text/html\r\n"
 	"Connection: close\r\n"
 	"Content-Length: 52\r\n\r\n"
 	"<html><body><b>404 File Not Found</b></body></html>";
+
+	const char* fourzerofive =
+	"HTTP/1.1 405 Method Not Allowed\r\n"
+	"Allow: GET, HEAD, PUT, DELETE\r\n"
+	"Content-Type: text/html\r\n"
+	"Connection: close\r\n"
+	"Content-Length: 62\r\n\r\n"
+	"<html><body><b>405 Method Not Allowed</b></body></html>";
 	
 	const char* fouronefive =
 	"HTTP/1.1 415 Unsupported Media Type\r\n"
@@ -186,7 +208,7 @@ void *clientHandler(void *arg)
 					if(passedVersion == 11)
 						write(fd, fouronefive, strlen(fouronefive)+1);
 					else
-						write(fd, "HTTP/1.0 400 Bad Request\r\n", 26);
+						write(fd, fouroneone, strlen(fouroneone));
 				}
 			}
 		}
@@ -247,16 +269,16 @@ void *clientHandler(void *arg)
 				if (remove(path) == 0)
 					write(fd, "HTTP/1.1 204 No Content\r\n", 25);
 				else
-					write(fd, "HTTP/1.1 403 Forbidden\r\n\r\n<p>DELETE error: remove() failed.</p>", 63);
+					write(fd, fouronethree_del, strlen(fouronethree_del));
 			}
 		}
 		//not a GET, HEAD, PUT, DELETE request
 		else
 		{
 			if(passedVersion == 11)
-				write(fd, "HTTP/1.1 405 Method Not Allowed\r\nAllow: GET, HEAD, PUT, DELETE\r\n", 64);
+				write(fd, fourzerofive, strlen(fourzerofive));
 			else
-				write(fd, "HTTP/1.0 400 Bad Request\r\n", 26);
+				write(fd, fouroneone, strlen(fouroneone));
 		}
 	}
 }
