@@ -59,6 +59,14 @@ void *clientHandler(void *arg)
 	"Content-Length: 49\r\n\r\n"
 	"<html><body><b>400 Bad Request</b></body></html>";
 
+	const char* fouroneone_method =
+	"HTTP/1.0 400 Bad Request\r\n"
+	"Allow: GET, HEAD\r\n"
+	"Content-Type: text/html\r\n"
+	"Connection: close\r\n"
+	"Content-Length: 49\r\n\r\n"
+	"<html><body><b>400 Bad Request</b></body></html>";
+
 	const char* fouronethree_del =
 	"HTTP/1.1 403 Forbidden\r\n"
 	"Content-Type: text/html\r\n"
@@ -213,7 +221,7 @@ void *clientHandler(void *arg)
 			}
 		}
 		//respond to PUT request
-		else if(strcmp(r_type, "PUT")==0)
+		else if(strcmp(r_type, "PUT")==0 && passedVersion == 11)
 		{
 			//check if html file (other file types not supported)
 			if(strcmp(fileExtension, "html")==0 && strstr(strcopy, "Content-Type: text/html") != NULL)
@@ -254,7 +262,7 @@ void *clientHandler(void *arg)
 			}
 		}
 		//respond to DELETE request
-		else if(strcmp(r_type, "DELETE")==0)
+		else if(strcmp(r_type, "DELETE")==0 && passedVersion == 11)
 		{
 			//check if file exists
 			if(access(path, F_OK ) < 0)	//doesn't exist
@@ -278,7 +286,7 @@ void *clientHandler(void *arg)
 			if(passedVersion == 11)
 				write(fd, fourzerofive, strlen(fourzerofive)+1);
 			else
-				write(fd, fouroneone, strlen(fouroneone)+1);
+				write(fd, fouroneone_method, strlen(fouroneone_method)+1);
 		}
 	}
 }
