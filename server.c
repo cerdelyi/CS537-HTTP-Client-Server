@@ -35,40 +35,45 @@ struct threadParams{
 void *clientHandler(void *arg)
 {
         
-        char str[MAXLINE];
-        int n;
-        
-        struct threadParams *passedParams = (struct threadParams*) arg;
-        int passedVersion = passedParams->passedHTTP;
-    
-        const char* htmlHeader =
-        "Content-Type: text/html\r\n"
-        "Accept-Ranges: bytes\r\n"
-        "Content-Length: ";
-        
-        const char* jpgHeader =
-        "Content-Type: image/jpeg\r\n"
-        "Accept-Ranges: bytes\r\n"
-        "Content-Length: ";
-        
-        const char *trailingNewline = "\r\n\r\n";
+	char str[MAXLINE];
+	int n;
+	
+	struct threadParams *passedParams = (struct threadParams*) arg;
+	int passedVersion = passedParams->passedHTTP;
 
-        ////////////////////////////
-        char httpHead[20];
-        if(passedVersion == 10)
-        {
-            strcpy(httpHead, "HTTP/1.0 200 OK\r\n");
-        }
-        if(passedVersion == 11)
-        {
-            strcpy(httpHead, "HTTP/1.1 200 OK\r\n");
-        }
-        ///////////////////////////
-        
-        int fd = (passedParams->passedFd);
-        char* string_tokens;
-        char fileExtension[6];
-    
+	const char* htmlHeader =
+	" 200 OK\r\n"
+	"Content-Type: text/html\r\n"
+	"Accept-Ranges: bytes\r\n"
+	"Content-Length: ";
+	
+	const char* jpgHeader =
+	" 200 OK\r\n"
+	"Content-Type: image/jpeg\r\n"
+	"Accept-Ranges: bytes\r\n"
+	"Content-Length: ";
+	
+    const char* fourzerofour =
+    "HTTP/1.1 404 Not Found\r\n"
+    "Connection: closed\r\n"
+    "Content-Type: text/html\r\n\r\n"
+    "<html>\n"
+	"<head><title>404</title></head>\n"
+	"<body>404 Not Found</body>\n"
+	"</html>\n";
+
+	char httpHead[20];
+	if(passedVersion == 10)
+	{
+		strcpy(httpHead, "HTTP/1.0");
+	}
+	if(passedVersion == 11)
+	{
+		strcpy(httpHead, "HTTP/1.1");
+	}
+	
+	int fd = (passedParams->passedFd);
+
     while (1) {
         char* r_type;    //hold request type
         char* path;        //hold path target for request
@@ -101,7 +106,7 @@ void *clientHandler(void *arg)
             //check if file exists
             if(access(path, F_OK) < 0)    //doesn't exist
             {
-                write(fd, "HTTP/1.1 404 Not Found\r\n", 24);
+                write(fd, fourzerofour, strlen(fourzerofour));
             }
             else    //does exist
             {
@@ -128,7 +133,6 @@ void *clientHandler(void *arg)
                     strcpy(fullHeader, httpHead);
                     strcat(fullHeader, htmlHeader);
                     strcat(fullHeader, Content_Header_Length);
-                    
                     
                     //GET-> send header+body || HEAD-> send header
                     if(strcmp(r_type, "GET")==0)
@@ -222,7 +226,7 @@ void *clientHandler(void *arg)
             //check if file exists
             if(access(path, F_OK ) < 0)    //doesn't exist
             {
-                write(fd, "HTTP/1.1 404 Not Found\r\n", 24);
+                write(fd, fourzerofour, strlen(fourzerofour));
             }
             else    //does exist
             {
