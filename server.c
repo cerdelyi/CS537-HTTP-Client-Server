@@ -27,14 +27,13 @@
 const int backlog = 4;
 
 struct threadParams{
-    int passedFd;
-    int passedHTTP;
+	int passedFd;
+	int passedHTTP;
 };
 
 
 void *clientHandler(void *arg)
 {
-        
 	char str[MAXLINE];
 	int n;
 	
@@ -53,11 +52,11 @@ void *clientHandler(void *arg)
 	"Accept-Ranges: bytes\r\n"
 	"Content-Length: ";
 	
-    const char* fourzerofour =
-    "HTTP/1.1 404 Not Found\r\n"
-    "Connection: closed\r\n"
-    "Content-Type: text/html\r\n\r\n"
-    "<html>\n"
+	const char* fourzerofour =
+	"HTTP/1.1 404 Not Found\r\n"
+	"Connection: closed\r\n"
+	"Content-Type: text/html\r\n\r\n"
+	"<html>\n"
 	"<head><title>404</title></head>\n"
 	"<body>404 Not Found</body>\n"
 	"</html>\n";
@@ -74,174 +73,174 @@ void *clientHandler(void *arg)
 	
 	int fd = (passedParams->passedFd);
 
-    while (1) {
-        char* r_type;    //hold request type
-        char* path;        //hold path target for request
-        char* fileExtension;    //hold file extension of path target
-        char strcopy[MAXLINE];    //hold copy before strtok for PUT request
-        char* indexstr = "index.html";    //string for index filename
+	while (1) {
+		char* r_type;    //hold request type
+		char* path;        //hold path target for request
+		char* fileExtension;    //hold file extension of path target
+		char strcopy[MAXLINE];    //hold copy before strtok for PUT request
+		char* indexstr = "index.html";    //string for index filename
         
-        if ((n = read(fd, str, MAXLINE)) == 0) {
-            write(fd, "closing connection", 18);
-            close (fd);
-            return 0;
-        }
-        //create copy in case PUT
-        strcpy(strcopy,str);
-        //extract request type
-        r_type = strtok(str, " ");
-        //extract path
-        char* slashpath = strtok(NULL, " ");
-        //set path to "index.html" if request for default path
-        if(strcmp(slashpath, "/") == 0)
-            path = indexstr;
-        else
-            path = slashpath+1;
-        //extract file extension
-        fileExtension = path+strcspn(path, ".")+1;
+		if ((n = read(fd, str, MAXLINE)) == 0) {
+			write(fd, "closing connection", 18);
+			close (fd);
+			return 0;
+		}
+		//create copy in case PUT
+		strcpy(strcopy,str);
+		//extract request type
+		r_type = strtok(str, " ");
+		//extract path
+		char* slashpath = strtok(NULL, " ");
+		//set path to "index.html" if request for default path
+		if(strcmp(slashpath, "/") == 0)
+			path = indexstr;
+		else
+			path = slashpath+1;
+		//extract file extension
+		fileExtension = path+strcspn(path, ".")+1;
         
-        //respond to GET or HEAD request
-        if (strcmp(r_type, "GET")==0 || strcmp(r_type, "HEAD")==0)
-        {
-            //check if file exists
-            if(access(path, F_OK) < 0)    //doesn't exist
-            {
-                write(fd, fourzerofour, strlen(fourzerofour));
-            }
-            else    //does exist
-            {
-                //request is html file
-                if(strcmp(fileExtension, "html")==0)
-                {
-                    //open file and find file length
-                    FILE* file = fopen(path, "r");
-                    fseek(file, 0, SEEK_END);
-                    int fileLen=ftell(file);
-                    char file_data[fileLen];
-                    rewind(file);
-                    
-                    //read file data
-                    fread(file_data, sizeof(char), fileLen, file);
-                    fclose(file);
-
-                    //convert file length to string
-                    char Content_Header_Length[50];
-                    sprintf(Content_Header_Length, "%d\r\n\r\n", fileLen);
-                    
-                    //make header
-                    char* fullHeader = (char*) malloc(strlen(htmlHeader)+strlen(Content_Header_Length)+strlen(httpHead));
-                    strcpy(fullHeader, httpHead);
-                    strcat(fullHeader, htmlHeader);
-                    strcat(fullHeader, Content_Header_Length);
-                    
-                    //GET-> send header+body || HEAD-> send header
-                    if(strcmp(r_type, "GET")==0)
-                    {
-                        write(fd, fullHeader, strlen(fullHeader));
-                        write(fd, file_data, fileLen);
-                    }
-                    else if (strcmp(r_type, "HEAD")==0)
-                        write(fd, fullHeader, strlen(fullHeader));
-                }
-                //request is jpg file
-                else if(strcmp(fileExtension, "jpg")==0)
-                {
-                    FILE* file = fopen(path, "rb");
-                    fseek(file, 0, SEEK_END);
-                    int fileLen=ftell(file);
-                    char file_data[fileLen];
-                    rewind(file);
-                    
-                    fread(file_data, sizeof(char), fileLen+1, file);
-                    fclose(file);
-                    
-                    //CONVERT LENGTH OF IMAGE FILE TO TEXT FORMAT FOR HEADER
-                    char Img_Content_Header_Length[50];
-                    sprintf(Img_Content_Header_Length, "%d\r\n\r\n", fileLen);
-                    
-                    //PUT IT ALL TOGETHER
-                    char* fullImgHeader = malloc(strlen(Img_Content_Header_Length) + strlen(jpgHeader)+strlen(httpHead));
-                    strcpy(fullImgHeader, httpHead);
-                    strcat(fullImgHeader, jpgHeader);
-                    strcat(fullImgHeader, Img_Content_Header_Length);
-                    
-                    if(strcmp(r_type, "GET")==0) {
-                        write(fd, fullImgHeader, strlen(fullImgHeader));
-                        write(fd, file_data, fileLen);
-                    }
-                    else if (strcmp(r_type, "HEAD")==0)
-                        write(fd, fullImgHeader, strlen(fullImgHeader));
-                }
-                //file is not html or jpg
-                else
-                {
-                    write(fd, "HTTP/1.1 415 Unsupported Media Type\r\n", 37);
-                }
-            }
-        }
-        //respond to PUT request
-        else if(strcmp(r_type, "PUT")==0)
-        {
-            //check if html file (other file types not supported)
-            if(strcmp(fileExtension, "html")==0 && strstr(strcopy, "Content-Type: text/html") != NULL)
-            {
-                char puthead[150];
-                //check if file exists
-                if(access(path, F_OK ) < 0)    //doesn't exist
-                {
-                    strcpy(puthead, "HTTP/1.1 201 Created\r\nContent-Location: ");
-                    strcat(puthead, path);
-                    strcat(puthead, "\r\n");
-                }
-                else    //does exist
-                {
-                    strcpy(puthead, "HTTP/1.1 204 No Content\r\nContent-Location: ");
-                    strcat(puthead, path);
-                    strcat(puthead, "\r\n");
-                }
-                //get length
-                char* lenloc = strstr(strcopy, "Content-Length: ");
-                int bodylen = atoi(lenloc+16);
-                //get body
-                char* bodyloc = strstr(strcopy, "\r\n\r\n") + 4;
-                //write file
-                FILE* file = fopen(path, "w");
-                if(file!=NULL)
-                {
-                    fwrite(bodyloc, sizeof(char), bodylen, file);
-                }
-                fclose(file);
-                //send response
-                write(fd, puthead, strlen(puthead));
-            }
-            //file is not html
-            else
-            {
-                write(fd, "HTTP/1.1 415 Unsupported Media Type\r\n", 37);
-            }
-        }
-        //respond to DELETE request
-        else if(strcmp(r_type, "DELETE")==0)
-        {
-            //check if file exists
-            if(access(path, F_OK ) < 0)    //doesn't exist
-            {
-                write(fd, fourzerofour, strlen(fourzerofour));
-            }
-            else    //does exist
-            {
-                if (remove(path) == 0)
-                    write(fd, "HTTP/1.1 204 No Content\r\n", 25);
-                else
-                    write(fd, "HTTP/1.1 403 Forbidden\r\n\r\n<p>DELETE error: remove() failed.</p>", 63);
-            }
-        }
-        //not a GET, HEAD, PUT, DELETE request
-        else
-        {
-            write(fd, "HTTP/1.1 405 Method Not Allowed\r\n", 33);
-        }
-    }
+		//respond to GET or HEAD request
+		if (strcmp(r_type, "GET")==0 || strcmp(r_type, "HEAD")==0)
+		{
+			//check if file exists
+			if(access(path, F_OK) < 0)    //doesn't exist
+			{
+				write(fd, fourzerofour, strlen(fourzerofour));
+			}
+			else    //does exist
+			{
+				//request is html file
+				if(strcmp(fileExtension, "html")==0)
+				{
+					//open file and find file length
+					FILE* file = fopen(path, "r");
+					fseek(file, 0, SEEK_END);
+					int fileLen=ftell(file);
+					char file_data[fileLen];
+					rewind(file);
+					
+					//read file data
+					fread(file_data, sizeof(char), fileLen, file);
+					fclose(file);
+					
+					//convert file length to string
+					char Content_Header_Length[50];
+					sprintf(Content_Header_Length, "%d\r\n\r\n", fileLen);
+					
+					//make header
+					char* fullHeader = (char*) malloc(strlen(htmlHeader)+strlen(Content_Header_Length)+strlen(httpHead));
+					strcpy(fullHeader, httpHead);
+					strcat(fullHeader, htmlHeader);
+					strcat(fullHeader, Content_Header_Length);
+					
+					//GET-> send header+body || HEAD-> send header
+					if(strcmp(r_type, "GET")==0)
+					{
+						write(fd, fullHeader, strlen(fullHeader));
+						write(fd, file_data, fileLen);
+					}
+					else if (strcmp(r_type, "HEAD")==0)
+						write(fd, fullHeader, strlen(fullHeader));
+				}
+				//request is jpg file
+				else if(strcmp(fileExtension, "jpg")==0)
+				{
+					FILE* file = fopen(path, "rb");
+					fseek(file, 0, SEEK_END);
+					int fileLen=ftell(file);
+					char file_data[fileLen];
+					rewind(file);
+					
+					fread(file_data, sizeof(char), fileLen+1, file);
+					fclose(file);
+					
+					//CONVERT LENGTH OF IMAGE FILE TO TEXT FORMAT FOR HEADER
+					char Img_Content_Header_Length[50];
+					sprintf(Img_Content_Header_Length, "%d\r\n\r\n", fileLen);
+					
+					//PUT IT ALL TOGETHER
+					char* fullImgHeader = malloc(strlen(Img_Content_Header_Length) + strlen(jpgHeader)+strlen(httpHead));
+					strcpy(fullImgHeader, httpHead);
+					strcat(fullImgHeader, jpgHeader);
+					strcat(fullImgHeader, Img_Content_Header_Length);
+					
+					if(strcmp(r_type, "GET")==0) {
+						write(fd, fullImgHeader, strlen(fullImgHeader));
+						write(fd, file_data, fileLen);
+					}
+					else if (strcmp(r_type, "HEAD")==0)
+						write(fd, fullImgHeader, strlen(fullImgHeader));
+				}
+				//file is not html or jpg
+				else
+				{
+					write(fd, "HTTP/1.1 415 Unsupported Media Type\r\n", 37);
+				}
+			}
+		}
+		//respond to PUT request
+		else if(strcmp(r_type, "PUT")==0)
+		{
+			//check if html file (other file types not supported)
+			if(strcmp(fileExtension, "html")==0 && strstr(strcopy, "Content-Type: text/html") != NULL)
+			{
+				char puthead[150];
+				//check if file exists
+				if(access(path, F_OK ) < 0)    //doesn't exist
+				{
+					strcpy(puthead, "HTTP/1.1 201 Created\r\nContent-Location: ");
+					strcat(puthead, path);
+					strcat(puthead, "\r\n");
+				}
+				else    //does exist
+				{
+					strcpy(puthead, "HTTP/1.1 204 No Content\r\nContent-Location: ");
+					strcat(puthead, path);
+					strcat(puthead, "\r\n");
+				}
+				//get length
+				char* lenloc = strstr(strcopy, "Content-Length: ");
+				int bodylen = atoi(lenloc+16);
+				//get body
+				char* bodyloc = strstr(strcopy, "\r\n\r\n") + 4;
+				//write file
+				FILE* file = fopen(path, "w");
+				if(file!=NULL)
+				{
+					fwrite(bodyloc, sizeof(char), bodylen, file);
+				}
+				fclose(file);
+				//send response
+				write(fd, puthead, strlen(puthead));
+			}
+			//file is not html
+			else
+			{
+				write(fd, "HTTP/1.1 415 Unsupported Media Type\r\n", 37);
+			}
+		}
+		//respond to DELETE request
+		else if(strcmp(r_type, "DELETE")==0)
+		{
+			//check if file exists
+			if(access(path, F_OK ) < 0)    //doesn't exist
+			{
+				write(fd, fourzerofour, strlen(fourzerofour));
+			}
+			else    //does exist
+			{
+				if (remove(path) == 0)
+					write(fd, "HTTP/1.1 204 No Content\r\n", 25);
+				else
+					write(fd, "HTTP/1.1 403 Forbidden\r\n\r\n<p>DELETE error: remove() failed.</p>", 63);
+			}
+		}
+		//not a GET, HEAD, PUT, DELETE request
+		else
+		{
+			write(fd, "HTTP/1.1 405 Method Not Allowed\r\n", 33);
+		}
+	}
 }
 
 
